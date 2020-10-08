@@ -126,6 +126,7 @@ export default class ResultScreen extends Component {
     }
 
     storeResultsToggle = () => {
+
         this.setState({
             storeResults: !this.state.storeResults
         })
@@ -156,7 +157,43 @@ export default class ResultScreen extends Component {
     }
 
     calculateLogicalResult = () => {
+        // (100 - property1Value) * importance + property2Value * importance
+        const currentListItems = this.state.currentListItems
+        const listProperties = this.state.listProperties
+        const resultArray = []
+        for (var i = 0; i < currentListItems.length; i++) {
+            const score = 0
+            for (var j = 0; j < listProperties.length; j++) {
+                score += listProperties[j].negative ? (100 - currentListItems[i].properties[j])* listProperties[j].importance  : currentListItems[i].properties[j] * listProperties[j].importance
+            }
+            resultArray.push(score)
+        }
+        const result = currentListItems[this.maxElementIndex(resultArray)].listItem
+        const previousResults = this.state.previousResults
+        if (this.state.storeResults) {
+            if (previousResults.length < 10) {
+                previousResults.unshift(result)
+            } else {
+                previousResults.pop()
+                previousResults.unshift(result)
+            }
+            this.setState({
+                previousResults: previousResults
+            })
+        }
+        this.setState({
+            result: result
+        })
 
+    }
+
+    maxElementIndex = (array) =>{
+        let maxIndex
+        const max = Math.max.apply(null, array)
+        for(var i=0;i<array.length;i++){
+            max === array[i] ? maxIndex = i : null
+        }
+        return maxIndex
     }
 
     render() {
