@@ -9,7 +9,7 @@ import Checkbox from '@react-native-community/checkbox';
 import { globalStyles, Colors } from '../Styles/GlobalStyles';
 
 
-export default class CreateEditListScreen extends Component {
+class CreateEditListScreen extends Component {
 
     state = {
         listItems: [],
@@ -18,7 +18,7 @@ export default class CreateEditListScreen extends Component {
         mode: this.props.navigation.getParam('mode'),
         listItemName: '',
         listProperties: [],
-        sliderValueVisible:false
+        sliderValueVisible: false
     }
 
 
@@ -29,7 +29,7 @@ export default class CreateEditListScreen extends Component {
         })
     }
 
-    sliderValueHandler = (event,index) => {
+    sliderValueHandler = (event, index) => {
         const listProperties = this.state.listProperties
         listProperties[index].importance = parseInt(event)
         this.setState({
@@ -37,9 +37,9 @@ export default class CreateEditListScreen extends Component {
         })
     }
 
-    negativeValueToggle = (index) =>{
+    negativeValueToggle = (index) => {
         const listProperties = this.state.listProperties
-        listProperties[index].negative = !listProperties[index].negative 
+        listProperties[index].negative = !listProperties[index].negative
         this.setState({
             listProperties: listProperties
         })
@@ -65,7 +65,7 @@ export default class CreateEditListScreen extends Component {
             value: newItem,
             id: new Date()
         })
-        console.log(listItems)
+        // console.log(listItems)
         this.setState({
             listItems: listItems,
             listItemName: ''
@@ -119,6 +119,25 @@ export default class CreateEditListScreen extends Component {
         })
     }
 
+    submitHandler = () => {
+
+        const listName = this.state.listName
+        const listItems = this.state.listItems
+        const listProperties = this.state.listProperties
+        // console.log(listName, listItems, listProperties)
+        this.props.handleRandomListCreate(listName, listItems)
+            .then((res) => {
+                this.props.navigation.navigate({
+                    routeName: 'SelectList', params: {
+                        listType: 'random'
+                    }
+                })
+            })
+            .catch(err => {
+
+            })
+    }
+
 
     render() {
         return (
@@ -150,18 +169,18 @@ export default class CreateEditListScreen extends Component {
                                             minimumTrackTintColor={Colors.orange}
                                             maximumTrackTintColor="#333"
                                             thumbTintColor={Colors.orange}
-                                            onValueChange={(event)=>this.sliderValueHandler(event,index)}
+                                            onValueChange={(event) => this.sliderValueHandler(event, index)}
                                             value={this.state.listProperties[index].importance}
-                                            onSlidingStart={()=>this.setState({sliderValueVisible:true})}
-                                            onSlidingComplete={()=>this.setState({sliderValueVisible:false})}
+                                            onSlidingStart={() => this.setState({ sliderValueVisible: true })}
+                                            onSlidingComplete={() => this.setState({ sliderValueVisible: false })}
                                         />
-                                        <Text style={styles.sliderValue}>{this.state.sliderValueVisible?this.state.listProperties[index].importance:null}</Text>
+                                        <Text style={styles.sliderValue}>{this.state.sliderValueVisible ? this.state.listProperties[index].importance : null}</Text>
                                     </View>
                                     <View style={{ flex: 1, flexDirection: 'row' }}>
                                         <Text style={styles.sliderText}>Negative Value</Text>
                                         <Checkbox
                                             value={this.state.listProperties[index].negative}
-                                            onValueChange={this.negativeValueToggle.bind(this,index)}
+                                            onValueChange={this.negativeValueToggle.bind(this, index)}
                                             style={styles.checkbox}
                                             tintColors={{ true: '#FF7043' }}
                                         />
@@ -199,7 +218,7 @@ export default class CreateEditListScreen extends Component {
                     })}
                 </View>
                 <View style={styles.root}>
-                    <Button title="Save" />
+                    <Button title="Save" onPress={this.submitHandler} />
                     <Button title="Cancel" />
                 </View>
             </ScrollView>
@@ -304,3 +323,19 @@ const styles = StyleSheet.create({
 
     }
 })
+
+import { connect } from 'react-redux'
+
+
+
+const mapStateToProps = (state) => ({
+
+})
+
+const mapDispatchToProps = async (dispatch) => {
+    return {
+        handleRandomListCreate: (listName, listItems) => dispatch({ type: 'CREATE_RANDOM_LIST', listName: listName, listItems: listItems })
+    }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(CreateEditListScreen)

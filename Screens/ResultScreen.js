@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { Text, View, StyleSheet, Dimensions, TouchableOpacity, Alert } from 'react-native'
+import { Text, View, StyleSheet, Dimensions, TouchableOpacity, Alert, Button } from 'react-native'
 import { ScrollView } from 'react-native-gesture-handler'
 import { Colors, globalStyles } from '../Styles/GlobalStyles'
 import { FontAwesome } from '@expo/vector-icons';
@@ -9,7 +9,7 @@ import Checkbox from '@react-native-community/checkbox';
 import { Entypo } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 
-export default class ResultScreen extends Component {
+class ResultScreen extends Component {
 
     state = {
         listType: this.props.navigation.getParam('listType'),
@@ -299,7 +299,8 @@ export default class ResultScreen extends Component {
                     </View>
 
                     <View style={globalStyles.card}>
-                        <Text style={globalStyles.heading}>Results</Text>
+                        <Text style={globalStyles.heading} >Results</Text>
+                        <Button title="Click Me" onPress={this.props.handleIncrementClick}/>
 
                         <Text style={styles.propertyNameText}>{this.state.previousResults.toString()}</Text>
 
@@ -419,3 +420,18 @@ const styles = StyleSheet.create({
         marginLeft: Dimensions.get('screen').width < 400 ? 10 : 20,
     }
 })
+
+import { connect } from 'react-redux'
+
+const mapStateToProps = (state) => ({
+    
+})
+
+const mapDispatchToProps = dispatch => {
+    return {
+      handleIncrementClick: () => dispatch({ type: 'INCREMENT' }),
+      handleDecrementClick: () => dispatch({type: 'DECREMENT'})
+    }
+  };
+
+export default connect(mapStateToProps, mapDispatchToProps)(ResultScreen)
