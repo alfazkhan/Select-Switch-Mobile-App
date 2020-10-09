@@ -339,7 +339,7 @@ ResultScreen.navigationOptions = (navData) => {
         headerTitle: listName,
         headerRight: () => (
             <View style={styles.iconContainer}>
-                <MaterialIcons style={{ textAlignVertical: 'center', textAlign: 'center', flex: 1 }} name="edit" size={24} color="white" />
+                <MaterialIcons style={{ textAlignVertical: 'center', textAlign: 'center', flex: 1 }} name="edit" size={24} color="white" onPress={()=>navData.navigation.navigate({routeName:'CreateEdit'})} />
                 <MaterialIcons style={{ textAlignVertical: 'center', textAlign: 'center', flex: 1, marginHorizontal: 20 }} name="delete" size={24} color="white" />
             </View>
         )

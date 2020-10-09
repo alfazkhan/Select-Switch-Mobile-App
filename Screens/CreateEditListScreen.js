@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
-import { Text, View, StyleSheet, Button, Dimensions } from 'react-native'
-import { ScrollView, TextInput } from 'react-native-gesture-handler'
+import { Text, View, StyleSheet, Button, Dimensions, Alert } from 'react-native'
+import { ScrollView, TextInput, TouchableOpacity } from 'react-native-gesture-handler'
 import { AntDesign } from '@expo/vector-icons';
 import { FontAwesome } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -14,94 +14,186 @@ export default class CreateEditListScreen extends Component {
     state = {
         listItems: [],
         listType: '',
-        sliderValue: 0
+        listName: '',
+        mode: this.props.navigation.getParam('mode'),
+        listItemName: '',
+        listProperties: [],
+        sliderValueVisible:false
     }
 
 
     componentDidMount() {
-        // console.log(Dimensions.get('screen').width)
         const listType = this.props.navigation.getParam('listType')
         this.setState({
-            listItems: [
-                { key: '1', value: 'Apple' },
-                { key: '2', value: 'Ball' },
-                { key: '3', value: 'Cat' },
-            ],
             listType: listType
         })
     }
 
-    sliderValueHandler = (event) => {
-        // console.log(parseInt(event))
+    sliderValueHandler = (event,index) => {
+        const listProperties = this.state.listProperties
+        listProperties[index].importance = parseInt(event)
         this.setState({
-            sliderValue: parseInt(event)
+            listProperties: listProperties
+        })
+    }
+
+    negativeValueToggle = (index) =>{
+        const listProperties = this.state.listProperties
+        listProperties[index].negative = !listProperties[index].negative 
+        this.setState({
+            listProperties: listProperties
+        })
+    }
+
+    listNameValueHandler = (event) => {
+        this.setState({
+            listName: event
+        })
+    }
+
+    listItemNameHandler = (event) => {
+        // console.log(event)
+        this.setState({
+            listItemName: event
+        })
+    }
+
+    listItemSubmitHandler = () => {
+        const listItems = this.state.listItems
+        const newItem = this.state.listItemName
+        listItems.push({
+            value: newItem,
+            id: new Date()
+        })
+        console.log(listItems)
+        this.setState({
+            listItems: listItems,
+            listItemName: ''
+        })
+    }
+
+    listItemDeleteHandler = (id) => {
+        const listItems = this.state.listItems
+        let index
+        for (var i = 0; i < listItems.length; i++) {
+            if (listItems[i].id === id) {
+                index = i
+            }
+        }
+        Alert.alert(
+            'Delete this item?',
+            listItems[index].value,
+            [
+                {
+                    text: "Cancel",
+                    onPress: () => confirm = false,
+                    style: "cancel"
+                },
+                {
+                    text: "OK", onPress: () => {
+
+                        listItems.splice(index, 1)
+                        this.setState({
+                            listItems: listItems
+                        })
+                    }
+                }
+            ],
+            { cancelable: true }
+        );
+    }
+
+    addPropertyHandler = () => {
+
+        const listProperties = this.state.listProperties
+        const newProperty = {
+            propertyName: '',
+            importance: 20,
+            info: '',
+            negative: false,
+            id: new Date()
+        }
+        listProperties.push(newProperty)
+        this.setState({
+            listProperties: listProperties
         })
     }
 
 
-
     render() {
         return (
-            <ScrollView style={styles.container}>
-                <TextInput placeholder={"List Name"} placeholderTextColor='#ffffff' style={styles.listNameInput} />
+            <ScrollView style={styles.container} keyboardShouldPersistTaps='handled'>
+                <TextInput placeholder={"List Name"} placeholderTextColor='#ffffff' style={styles.listNameInput} onChangeText={this.listNameValueHandler} value={this.state.listName} />
 
                 {this.state.listType === 'logical'
                     ?
                     <View>
                         <Text style={globalStyles.heading}>Properties</Text>
-                        <View style={{ marginTop: 20, marginBottom: 40 }, { ...globalStyles.card }}>
-                            <View style={{ flexDirection: 'row' }}>
-                                <TextInput placeholder="Camera" placeholderTextColor='#fff' style={styles.textInput} />
-                                <MaterialIcons name="delete" size={30} style={styles.propertyDeleteIcon} color={Colors.red} />
-                            </View>
-                            <View style={{ flexDirection: 'row' }}>
-                                <TextInput placeholder="Property Info" placeholderTextColor='#fff' style={styles.textInput} />
-                            </View>
-                            <View style={styles.importanceInput}>
-                                <Text style={styles.sliderText}>Importance</Text>
 
-                                <Slider
-                                    style={{ height: 55, flex: 4, width: 100 }}
-                                    minimumValue={0}
-                                    maximumValue={100}
-                                    minimumTrackTintColor={Colors.orange}
-                                    maximumTrackTintColor="#333"
-                                    thumbTintColor={Colors.orange}
-                                    onValueChange={this.sliderValueHandler}
-                                // value={this.state.sliderValue}
-                                />
-                                <Text style={styles.sliderValue}>{this.state.sliderValue}</Text>
-                            </View>
-                            <View style={{ flex: 1, flexDirection: 'row' }}>
-                                <Text style={styles.sliderText}>Negative Value</Text>
-                                <Checkbox
-                                    // value={isSelected}
-                                    // onValueChange={setSelection}
-                                    style={styles.checkbox}
-                                    tintColors={{ true: '#FF7043' }}
-                                />
-                            </View>
-                        </View>
-                        <View>
-                            <AntDesign name="pluscircle" size={30} color="#FF7043" style={{ textAlign: 'center', marginVertical: 10 }} />
-                        </View>
+                        {this.state.listProperties.map((item, index) => {
+                            return (
+                                <View style={{ marginTop: 20, marginBottom: 40 }, { ...globalStyles.card }}>
+                                    <View style={{ flexDirection: 'row' }}>
+                                        <TextInput placeholder="Camera" placeholderTextColor='#fff' style={styles.textInput} value={this.state.listProperties[index].propertyName} />
+                                        <MaterialIcons name="delete" size={30} style={styles.propertyDeleteIcon} color={Colors.red} />
+                                    </View>
+                                    <View style={{ flexDirection: 'row' }}>
+                                        <TextInput placeholder="Property Info" placeholderTextColor='#fff' style={styles.textInput} value={this.state.listProperties[index].info} />
+                                    </View>
+                                    <View style={styles.importanceInput}>
+                                        <Text style={styles.sliderText}>Importance</Text>
+
+                                        <Slider
+                                            style={{ height: 55, flex: 4, width: 100 }}
+                                            minimumValue={0}
+                                            maximumValue={100}
+                                            minimumTrackTintColor={Colors.orange}
+                                            maximumTrackTintColor="#333"
+                                            thumbTintColor={Colors.orange}
+                                            onValueChange={(event)=>this.sliderValueHandler(event,index)}
+                                            value={this.state.listProperties[index].importance}
+                                            onSlidingStart={()=>this.setState({sliderValueVisible:true})}
+                                            onSlidingComplete={()=>this.setState({sliderValueVisible:false})}
+                                        />
+                                        <Text style={styles.sliderValue}>{this.state.sliderValueVisible?this.state.listProperties[index].importance:null}</Text>
+                                    </View>
+                                    <View style={{ flex: 1, flexDirection: 'row' }}>
+                                        <Text style={styles.sliderText}>Negative Value</Text>
+                                        <Checkbox
+                                            value={this.state.listProperties[index].negative}
+                                            onValueChange={this.negativeValueToggle.bind(this,index)}
+                                            style={styles.checkbox}
+                                            tintColors={{ true: '#FF7043' }}
+                                        />
+                                    </View>
+                                </View>
+                            )
+                        })}
+
+                        <TouchableOpacity>
+                            <AntDesign name="pluscircle" size={30} color="#FF7043" style={{ textAlign: 'center', marginVertical: 10 }} onPress={this.addPropertyHandler} />
+                        </TouchableOpacity>
                     </View>
+
+
                     : null}
 
 
                 <View style={styles.listItemInputContainer}>
-                    <TextInput placeholder={"List Item"} placeholderTextColor='#ffffff' style={styles.textInput} />
-                    <AntDesign name="pluscircle" size={30} color="#FF7043" style={styles.plusIcon} />
+                    <TextInput placeholder={"List Item"} placeholderTextColor='#ffffff' style={styles.textInput} value={this.state.listItemName} onChangeText={this.listItemNameHandler} />
+                    <TouchableOpacity>
+                        <AntDesign name="pluscircle" size={30} color="#FF7043" style={styles.plusIcon} onPress={this.listItemSubmitHandler} />
+                    </TouchableOpacity>
                 </View>
 
                 <View style={globalStyles.card}>
                     <Text style={globalStyles.heading}>Current List</Text>
                     {this.state.listItems.map(item => {
                         return (
-                            <View style={styles.currentListItem}>
+                            <View style={styles.currentListItem} key={item.id}>
                                 <FontAwesome name="circle" size={10} color="white" style={{ textAlignVertical: 'center' }} onPress={this.addItem} />
                                 <Text style={styles.currentListText}>{item.value}</Text>
-                                <MaterialIcons name="delete" size={22} style={styles.currentListDeleteIcon} color={Colors.red} />
+                                <MaterialIcons name="delete" size={22} style={styles.currentListDeleteIcon} color={Colors.red} onPress={() => this.listItemDeleteHandler(item.id)} />
                             </View>
                         )
                     })}
@@ -196,7 +288,7 @@ const styles = StyleSheet.create({
         flex: 3
     },
     sliderValue: {
-        fontSize: 20,
+        // fontSize: 20,
         color: '#fff',
         textAlignVertical: 'center',
         flex: 1,
