@@ -8,11 +8,11 @@ import Slider from '@react-native-community/slider';
 import Checkbox from '@react-native-community/checkbox';
 import { Entypo } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as SQLite from 'expo-sqlite';
+
 import {
     AdMobBanner,
-    AdMobInterstitial,
-    PublisherBanner,
-    AdMobRewarded,
+
     setTestDeviceIDAsync,
 } from 'expo-ads-admob';
 setTestDeviceIDAsync('EMULATOR');
@@ -27,14 +27,77 @@ class ResultScreen extends Component {
         listProperties: [],
         propertyCollpse: [],
         sliderValueVisible: false,
-        storeResults: false,
-        repeatResults: false,
-        previousResults: []
+        storeResults: true,
+        repeatResults: true,
+        previousResults: [],
+        listID: this.props.navigation.getParam('id'),
+        loaded: false,
+        db: SQLite.openDatabase('SelectSwitch.db')
 
     }
 
     componentDidMount() {
         //fetchListItems
+        const db = this.state.db
+        db.transaction((txn) => {
+            txn.executeSql(`SELECT * FROM listItems where listID=${this.state.listID}`,
+                [],
+                (_, result) => {
+
+                    const listItems = result.rows._array
+                    this.setState({
+                        currentListItems: listItems,
+                    })
+
+
+                },
+                (_, err) => {
+                    console.log(err)
+                }
+            )
+        })
+
+        db.transaction((txn) => {
+            txn.executeSql(`SELECT * FROM lists where id=${this.state.listID}`,
+                [],
+                (_, result) => {
+
+                    const list = result.rows._array
+                    this.setState({
+                        repeatResults: list[0].repeatResults === 1 ? true : false,
+                        storeResults: list[0].storeResults === 1 ? true : false,
+                        loaded: true
+                    })
+
+                },
+                (_, err) => {
+                    console.log(err)
+                }
+            )
+        })
+
+        db.transaction((txn) => {
+            txn.executeSql(`SELECT * from results where listID=${this.state.listID} order by id desc limit 10`,
+                [],
+                (_, result) => {
+                    const results = result.rows._array.reverse()
+                    const previousResults = this.state.previousResults
+                    // console.log(results)
+                    for (var i = 0; i < results.length; i++) {
+                        console.log(results[i].result)
+                        previousResults.unshift(results[i].result)
+                    }
+                    this.setState({
+                        previousResults: previousResults
+                    })
+
+                },
+                (_, err) => {
+                    console.log(err)
+                }
+            )
+        })
+
         let listItems = []
         let listProperties = []
         if (this.state.listType === 'random') {
@@ -119,7 +182,7 @@ class ResultScreen extends Component {
         })
     }
 
-    propertyValuceChangeHandler = (value, itemIndex, propertyIndex) => {
+    propertyValueChangeHandler = (value, itemIndex, propertyIndex) => {
 
         const listItems = this.state.currentListItems
         listItems[itemIndex].properties[propertyIndex] = parseInt(value)
@@ -129,36 +192,77 @@ class ResultScreen extends Component {
     }
 
     repeatResultsToggle = () => {
-        this.setState({
-            repeatResults: !this.state.repeatResults
+        const db = this.state.db
+        db.transaction((txn) => {
+            txn.executeSql(`UPDATE lists SET repeatResults = ${!this.state.repeatResults ? 1 : 0} where id=${this.state.listID}`,
+                [],
+                (_, result) => {
+                    console.log(result)
+                    this.setState({
+                        repeatResults: !this.state.repeatResults
+                    })
+                },
+                (_, err) => {
+                    console.log(err)
+                }
+            )
         })
+
     }
 
     storeResultsToggle = () => {
-
-        this.setState({
-            storeResults: !this.state.storeResults
+        const db = this.state.db
+        db.transaction((txn) => {
+            txn.executeSql(`UPDATE lists SET storeResults = ${!this.state.storeResults ? 1 : 0} where id=${this.state.listID}`,
+                [],
+                (_, result) => {
+                    console.log(result)
+                    this.setState({
+                        storeResults: !this.state.storeResults
+                    })
+                },
+                (_, err) => {
+                    console.log(err)
+                }
+            )
         })
+
+
     }
 
     calculateRandomResult = () => {
 
         const currentListItems = this.state.currentListItems
         const randomIndex = parseInt(Math.random() * currentListItems.length)
-        const result = currentListItems[randomIndex]
+        const result = currentListItems[randomIndex].itemName
 
         const previousResults = this.state.previousResults
         if (this.state.storeResults) {
-            if (previousResults.length < 10) {
-                previousResults.unshift(result)
-            } else {
+            if (previousResults.length > 10) {
                 previousResults.pop()
-                previousResults.unshift(result)
             }
+            previousResults.unshift(result)
+            const db = this.state.db
+            db.transaction((txn) => {
+                txn.executeSql(`INSERT into results (listID,result) VALUES(?,?)`,
+                    [this.state.listID, result],
+                    (_, queryResult) => {
+                        console.log(queryResult)
+                    },
+                    (_, err) => {
+                        console.log(err)
+                    }
+                )
+            })
             this.setState({
                 previousResults: previousResults
             })
         }
+
+        if (!this.state.repeatResults) {
+            currentListItems.splice(randomIndex, 1)
+        }
+
         this.setState({
             result: result
         })
@@ -181,11 +285,11 @@ class ResultScreen extends Component {
         const previousResults = this.state.previousResults
         if (this.state.storeResults) {
             if (previousResults.length < 10) {
-                previousResults.unshift(result)
+
             } else {
                 previousResults.pop()
-                previousResults.unshift(result)
             }
+            previousResults.unshift(result)
             this.setState({
                 previousResults: previousResults
             })
@@ -208,10 +312,10 @@ class ResultScreen extends Component {
     render() {
         const listItems = this.state.currentListItems.map((item, index) => {
             return (
-                <View>
+                <View key={item.id}>
                     <View style={styles.propertyContainer}>
                         <FontAwesome name="circle" size={10} color="white" style={{ textAlignVertical: 'center' }} />
-                        <Text style={styles.propertyNameText}>{this.state.listType === 'random' ? item : item.listItem}</Text>
+                        <Text style={styles.propertyNameText}>{item.itemName}</Text>
                         {this.state.listType === 'logical'
                             ?
                             <AntDesign
@@ -242,7 +346,7 @@ class ResultScreen extends Component {
                                             maximumTrackTintColor="#333"
                                             thumbTintColor={prop.negative ? Colors.red : Colors.green}
                                             value={item.properties[propIndex]}
-                                            onValueChange={(value) => this.propertyValuceChangeHandler(value, index, propIndex)}
+                                            onValueChange={(value) => this.propertyValueChangeHandler(value, index, propIndex)}
                                             onSlidingStart={() => this.setState({ sliderValueVisible: true })}
                                             onSlidingComplete={() => this.setState({ sliderValueVisible: false })}
                                         />
@@ -263,88 +367,98 @@ class ResultScreen extends Component {
             )
         })
         return (
-            <View style={{ flex: 1 }}>
-                <ScrollView style={styles.root}>
+            this.state.loaded
+                ?
+                <View style={{ flex: 1 }}>
+                    <ScrollView style={styles.root}>
 
-                    <View style={styles.resultcard}>
-                        <Text style={styles.heading}>{this.state.result}</Text>
-                    </View>
-                    <View style={globalStyles.card}>
-                        <Text style={globalStyles.heading}>Current List</Text>
-                        {listItems}
-                    </View>
-                    <View style={styles.optionsCard}>
-                        {this.state.listType === 'random'
-                            ?
+                        <View style={styles.resultcard}>
+                            <Text style={styles.heading}>{this.state.result}</Text>
+                        </View>
+                        <View style={globalStyles.card}>
+                            <Text style={globalStyles.heading}>Current List</Text>
+                            {listItems}
+                        </View>
+                        <View style={styles.optionsCard}>
+                            {this.state.listType === 'random'
+                                ?
+                                <View>
+                                    <View style={{ flexDirection: 'row' }}>
+                                        <Text style={styles.optionsText}>Repeat Results</Text>
+                                        <Checkbox
+                                            style={styles.checkbox}
+                                            tintColors={{ true: '#FF7043' }}
+                                            value={this.state.repeatResults}
+                                            onChange={this.repeatResultsToggle}
+                                        />
+                                    </View>
+                                    <View>
+                                        <Text style={styles.settingInfoText}>Repeat previously occured Results</Text>
+                                    </View>
+                                </View>
+                                : null}
                             <View>
                                 <View style={{ flexDirection: 'row' }}>
-                                    <Text style={styles.optionsText}>Repeat Results</Text>
+                                    <Text style={styles.optionsText}>Store Results</Text>
                                     <Checkbox
                                         style={styles.checkbox}
                                         tintColors={{ true: '#FF7043' }}
-                                        value={this.state.repeatResults}
-                                        onChange={this.repeatResultsToggle}
+                                        value={this.state.storeResults}
+                                        onChange={this.storeResultsToggle}
                                     />
                                 </View>
                                 <View>
-                                    <Text style={styles.settingInfoText}>Repeat previously occured Results</Text>
+                                    <Text style={styles.settingInfoText}>Store Previous 10 Results</Text>
                                 </View>
                             </View>
-                            : null}
-                        <View>
-                            <View style={{ flexDirection: 'row' }}>
-                                <Text style={styles.optionsText}>Store Results</Text>
-                                <Checkbox
-                                    style={styles.checkbox}
-                                    tintColors={{ true: '#FF7043' }}
-                                    value={this.state.storeResults}
-                                    onChange={this.storeResultsToggle}
-                                />
-                            </View>
-                            <View>
-                                <Text style={styles.settingInfoText}>Store Previous 10 Results</Text>
-                            </View>
                         </View>
+
+                        <View style={globalStyles.card}>
+                            <Text style={globalStyles.heading} >Results</Text>
+                            <Text style={styles.propertyNameText}>{this.state.previousResults.toString()}</Text>
+
+
+                        </View>
+                        <View style={{ width: Dimensions.get('window').width }}>
+                            <AdMobBanner
+                                bannerSize="fullBanner"
+                                adUnitID="ca-app-pub-3940256099942544/6300978111" // Test ID, Replace with your-admob-unit-id
+                                servePersonalizedAds // true or false
+                                onDidFailToReceiveAdWithError={this.bannerError}
+                                style={{ width: Dimensions.get('window').width }}
+                            />
+                        </View>
+
+
+                    </ScrollView>
+                    <View >
+                        {this.state.currentListItems.length !== 0
+                            ?
+                            <TouchableOpacity
+                                style={{
+                                    width: 60,
+                                    height: 60,
+                                    borderRadius: 30,
+                                    backgroundColor: '#FF7043',
+                                    position: 'absolute',
+                                    bottom: 10,
+                                    right: 10,
+                                    // top:10,
+                                    flex: 1
+                                }}
+                                onPress={
+                                    this.state.listType === 'random'
+                                        ? this.calculateRandomResult
+                                        : this.calculateLogicalResult
+                                }
+                            >
+                                <Entypo name="shuffle" style={{ textAlignVertical: 'center', textAlign: 'center', flex: 1 }} size={40} color='#fff' />
+
+                            </TouchableOpacity>
+                            : null}
                     </View>
-
-                    <View style={globalStyles.card}>
-                        <Text style={globalStyles.heading} >Results</Text>
-                        <Button title="Click Me" onPress={this.props.handleIncrementClick} />
-
-                        <Text style={styles.propertyNameText}>{this.state.previousResults.toString()}</Text>
-
-
-                    </View>
-                    <View style={globalStyles.card}>
-                        <AdMobBanner
-                            bannerSize="fullBanner"
-                            adUnitID="ca-app-pub-3940256099942544/6300978111" // Test ID, Replace with your-admob-unit-id
-                            servePersonalizedAds // true or false
-                            onDidFailToReceiveAdWithError={this.bannerError} />
-                    </View>
-
-
-                </ScrollView>
-                <View  >
-                    <TouchableOpacity
-                        style={{
-                            width: 60,
-                            height: 60,
-                            borderRadius: 30,
-                            backgroundColor: '#FF7043',
-                            position: 'absolute',
-                            bottom: 10,
-                            right: 10,
-                            // top:10,
-                            flex: 1
-                        }}
-                        onPress={this.state.listType === 'random' ? this.calculateRandomResult : this.calculateLogicalResult}
-                    >
-                        <Entypo name="shuffle" style={{ textAlignVertical: 'center', textAlign: 'center', flex: 1 }} size={40} color='#fff' />
-
-                    </TouchableOpacity>
                 </View>
-            </View>
+                : <View style={{ flex: 1 }}></View>
 
         )
     }
@@ -352,12 +466,69 @@ class ResultScreen extends Component {
 
 ResultScreen.navigationOptions = (navData) => {
     const listName = navData.navigation.getParam('listName')
+    const listID = navData.navigation.getParam('id')
     return {
         headerTitle: listName,
         headerRight: () => (
             <View style={styles.iconContainer}>
-                <MaterialIcons style={{ textAlignVertical: 'center', textAlign: 'center', flex: 1 }} name="edit" size={24} color="white" onPress={() => navData.navigation.navigate({ routeName: 'CreateEdit' })} />
-                <MaterialIcons style={{ textAlignVertical: 'center', textAlign: 'center', flex: 1, marginHorizontal: 20 }} name="delete" size={24} color="white" />
+                <MaterialIcons
+                    style={{ textAlignVertical: 'center', textAlign: 'center', flex: 1 }}
+                    name="edit"
+                    size={24}
+                    color="white"
+                    onPress={() => {
+
+                        navData.navigation.navigate({
+                            routeName: 'CreateEdit', params: {
+                                listID: listID,
+                                mode: 'edit'
+                            }
+                        })
+                    }
+                    } />
+                <MaterialIcons
+                    style={{ textAlignVertical: 'center', textAlign: 'center', flex: 1, marginHorizontal: 20 }}
+                    name="delete"
+                    size={24}
+                    color="white"
+                    onPress={() => {
+                        Alert.alert(
+                            'Delete List',
+                            'Are you sure you want to delete this list?',
+                            [
+                                { text: 'Cancel' },
+                                {
+                                    text: 'Yes',
+                                    onPress: () => {
+                                        const db = SQLite.openDatabase('SelectSwitch.db')
+                                        db.transaction((txn) => {
+                                            txn.executeSql(`DELETE FROM lists where id=?`,
+                                                [listID],
+                                                (_, result) => {
+
+                                                    console.log(result)
+                                                    // navData.navigation.pop()
+                                                    navData.navigation.popToTop()
+                                                    navData.navigation.navigate({
+                                                        routeName: 'SelectList', params: {
+                                                            listType: this.props.navigation.getParam('listType')
+                                                        }
+                                                    })
+
+                                                },
+                                                (_, err) => {
+                                                    console.log(err)
+                                                }
+                                            )
+                                        })
+
+                                    }
+                                },
+                            ],
+                            { cancelable: true }
+                        );
+                    }}
+                />
             </View>
         )
     }

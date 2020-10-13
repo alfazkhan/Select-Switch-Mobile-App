@@ -1,8 +1,9 @@
 import React, { Component } from 'react'
-import { Text, View, StyleSheet, Button, TouchableOpacity, TouchableNativeFeedback } from 'react-native'
+import { Text, View, StyleSheet, Button, TouchableOpacity, TouchableNativeFeedback, Dimensions } from 'react-native'
 import { FlatList, ScrollView, } from 'react-native-gesture-handler'
 import { connect } from 'react-redux'
 import * as SQLite from 'expo-sqlite';
+import { Ionicons } from '@expo/vector-icons';
 
 
 
@@ -10,10 +11,12 @@ class SelectListScreen extends Component {
 
     state = {
         lists: [],
-        listType: this.props.navigation.getParam('listType')
+        listType: this.props.navigation.getParam('listType'),
+        loaded: false,
     }
 
     componentDidMount() {
+
         const db = SQLite.openDatabase('SelectSwitch.db')
         db.transaction((txn) => {
             txn.executeSql(`SELECT * FROM lists`,
@@ -21,9 +24,10 @@ class SelectListScreen extends Component {
                 (_, result) => {
 
                     const lists = result.rows._array
-                    console.log(lists) 
+                    // console.log(lists)
                     this.setState({
-                        lists: lists
+                        lists: lists,
+                        loaded: true
                     })
 
                 },
@@ -32,24 +36,30 @@ class SelectListScreen extends Component {
                 }
             )
         })
-        
+
     }
 
 
     render() {
         return (
+
             <ScrollView style={styles.container}>
                 {this.state.lists.map((list) => {
                     if (list.listType !== this.state.listType) {
                         return null
                     }
                     return (
-                        <TouchableOpacity key={Math.random() * 1000} onPress={() => this.props.navigation.navigate({
-                            routeName: 'Result', params: {
-                                listName: list.listName,
-                                listType: this.props.navigation.getParam('listType')
-                            }
-                        })}>
+                        <TouchableOpacity key={list.id} onPress={() => {
+                            // this.props.navigation.pop()
+                            this.props.navigation.navigate({
+                                routeName: 'Result', params: {
+                                    listName: list.listName,
+                                    listType: this.props.navigation.getParam('listType'),
+                                    id: list.id
+                                }
+                            })
+                        }
+                        }>
                             <View>
                                 <Text style={styles.listItem} key={Math.random()} > {list.listName} </Text>
                             </View>
@@ -58,15 +68,18 @@ class SelectListScreen extends Component {
                 })}
 
                 <Button style={styles.button} title="Create New List" onPress={() => {
+                    // this.props.navigation.pop()
                     this.props.navigation.navigate({
                         routeName: 'CreateEdit',
                         params: {
                             mode: 'create',
                             listType: this.props.navigation.getParam('listType')
+
                         }
                     })
                 }} />
             </ScrollView>
+
         )
     }
 }
@@ -74,7 +87,17 @@ class SelectListScreen extends Component {
 SelectListScreen.navigationOptions = (navData) => {
     const title = navData.navigation.getParam('listType')
     return {
-        headerTitle: title === 'random' ? 'Random Selction' : 'Logical Selection'
+        headerTitle: title === 'random' ? 'Random Selction' : 'Logical Selection',
+        headerLeft: () => (
+            <View style={styles.backIcon} >
+                <Ionicons name="md-arrow-back" size={24} color="white" onPress={() => {
+                    console.log("Back Button")
+                    navData.navigation.popToTop()
+                }
+                }
+                />
+            </View>
+        )
     }
 }
 
@@ -99,6 +122,9 @@ const styles = StyleSheet.create({
     },
     button: {
         marginHorizontal: 40
+    },
+    backIcon: {
+        marginLeft: Dimensions.get('screen').width < 400 ? 10 : 20
     }
 })
 

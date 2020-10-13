@@ -3,14 +3,14 @@ import * as SQLite from 'expo-sqlite';
 
 const db = SQLite.openDatabase('SelectSwitch.db')
 
-export const createList = (listName, listType, repeatResults, storeResults) => {
+export const createListItem = (listID, itemName) => {
     return new Promise((resolve, reject) => {
         db.transaction((txn) => {
-            txn.executeSql(`INSERT INTO lists (listName,listType,repeatResults,storeResults) VALUES(?,?,?,?)`,
-                [listName, listType, repeatResults, storeResults],
-                (_, result) => {
+            txn.executeSql(`INSERT INTO listItems (listID,itemName) VALUES(?,?)`,
+                [listID,itemName],
+                (_,result) => {
                     resolve(result)
-                    console.log('Data Inserted')
+                    console.log(result)
                 },
                 (_, err) => {
                     reject(err)
@@ -19,22 +19,27 @@ export const createList = (listName, listType, repeatResults, storeResults) => {
             )
         })
     })
+
+
 }
 
-export const updateList = (listName, id) => {
+export const deleteListItem = (id) => {
     return new Promise((resolve, reject) => {
         db.transaction((txn) => {
-            txn.executeSql(`UPDATE lists SET listName=? where id=?`,
-                [listName, id],
+            txn.executeSql(`DELETE FROM listItems where id=?`,
+                [id],
                 (_, result) => {
-                    resolve(result)
-                    console.log('Data Inserted')
+
+                    console.log(result)
+
                 },
                 (_, err) => {
-                    reject(err)
                     console.log(err)
                 }
             )
         })
     })
+
+
 }
+
