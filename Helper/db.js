@@ -3,6 +3,7 @@ import * as SQLite from 'expo-sqlite';
 
 const db = SQLite.openDatabase('SelectSwitch.db')
 
+
 export const init = () => {
     db.transaction((txn) => {
         txn.executeSql('CREATE TABLE IF NOT EXISTS lists (id INTEGER NOT NULL PRIMARY KEY, listName TEXT NOT NULL, listType TEXT NOT NULL, repeatResults INTEGER NOT NULL, storeResults INTEGER NOT NULL);',

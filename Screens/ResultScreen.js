@@ -8,6 +8,15 @@ import Slider from '@react-native-community/slider';
 import Checkbox from '@react-native-community/checkbox';
 import { Entypo } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
+import {
+    AdMobBanner,
+    AdMobInterstitial,
+    PublisherBanner,
+    AdMobRewarded,
+    setTestDeviceIDAsync,
+} from 'expo-ads-admob';
+setTestDeviceIDAsync('EMULATOR');
+
 
 class ResultScreen extends Component {
 
@@ -164,7 +173,7 @@ class ResultScreen extends Component {
         for (var i = 0; i < currentListItems.length; i++) {
             const score = 0
             for (var j = 0; j < listProperties.length; j++) {
-                score += listProperties[j].negative ? (100 - currentListItems[i].properties[j])* listProperties[j].importance  : currentListItems[i].properties[j] * listProperties[j].importance
+                score += listProperties[j].negative ? (100 - currentListItems[i].properties[j]) * listProperties[j].importance : currentListItems[i].properties[j] * listProperties[j].importance
             }
             resultArray.push(score)
         }
@@ -187,10 +196,10 @@ class ResultScreen extends Component {
 
     }
 
-    maxElementIndex = (array) =>{
+    maxElementIndex = (array) => {
         let maxIndex
         const max = Math.max.apply(null, array)
-        for(var i=0;i<array.length;i++){
+        for (var i = 0; i < array.length; i++) {
             max === array[i] ? maxIndex = i : null
         }
         return maxIndex
@@ -300,11 +309,18 @@ class ResultScreen extends Component {
 
                     <View style={globalStyles.card}>
                         <Text style={globalStyles.heading} >Results</Text>
-                        <Button title="Click Me" onPress={this.props.handleIncrementClick}/>
+                        <Button title="Click Me" onPress={this.props.handleIncrementClick} />
 
                         <Text style={styles.propertyNameText}>{this.state.previousResults.toString()}</Text>
 
 
+                    </View>
+                    <View style={globalStyles.card}>
+                        <AdMobBanner
+                            bannerSize="fullBanner"
+                            adUnitID="ca-app-pub-3940256099942544/6300978111" // Test ID, Replace with your-admob-unit-id
+                            servePersonalizedAds // true or false
+                            onDidFailToReceiveAdWithError={this.bannerError} />
                     </View>
 
 
@@ -340,7 +356,7 @@ ResultScreen.navigationOptions = (navData) => {
         headerTitle: listName,
         headerRight: () => (
             <View style={styles.iconContainer}>
-                <MaterialIcons style={{ textAlignVertical: 'center', textAlign: 'center', flex: 1 }} name="edit" size={24} color="white" onPress={()=>navData.navigation.navigate({routeName:'CreateEdit'})} />
+                <MaterialIcons style={{ textAlignVertical: 'center', textAlign: 'center', flex: 1 }} name="edit" size={24} color="white" onPress={() => navData.navigation.navigate({ routeName: 'CreateEdit' })} />
                 <MaterialIcons style={{ textAlignVertical: 'center', textAlign: 'center', flex: 1, marginHorizontal: 20 }} name="delete" size={24} color="white" />
             </View>
         )
@@ -424,14 +440,14 @@ const styles = StyleSheet.create({
 import { connect } from 'react-redux'
 
 const mapStateToProps = (state) => ({
-    
+
 })
 
 const mapDispatchToProps = dispatch => {
     return {
-      handleIncrementClick: () => dispatch({ type: 'INCREMENT' }),
-      handleDecrementClick: () => dispatch({type: 'DECREMENT'})
+        handleIncrementClick: () => dispatch({ type: 'INCREMENT' }),
+        handleDecrementClick: () => dispatch({ type: 'DECREMENT' })
     }
-  };
+};
 
 export default connect(mapStateToProps, mapDispatchToProps)(ResultScreen)

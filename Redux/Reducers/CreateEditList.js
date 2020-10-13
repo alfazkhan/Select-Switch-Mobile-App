@@ -1,6 +1,5 @@
-import { createList } from "../../Helper/Lists"
 
-export const createRandomList = async (listName, listItems) => {
+export const createRandomList = (listName, listItems) => {
     const newList = {
         listName: listName,
         listType: 'random',
@@ -15,12 +14,6 @@ export const createRandomList = async (listName, listItems) => {
             itemName: listItems[i].value
         })
     }
-
-    // console.log(listName,listItems)
-
-    const create = await createList(listName,'random',1,1)
-    console.log(create)
-
 
     return ([newList, listItems])
 }

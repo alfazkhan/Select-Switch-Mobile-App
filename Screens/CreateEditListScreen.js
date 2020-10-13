@@ -7,6 +7,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import Checkbox from '@react-native-community/checkbox';
 import { globalStyles, Colors } from '../Styles/GlobalStyles';
+import * as SQLite from 'expo-sqlite';
+import { connect } from 'react-redux'
+import { createList } from '../Helper/Lists';
 
 
 class CreateEditListScreen extends Component {
@@ -119,23 +122,47 @@ class CreateEditListScreen extends Component {
         })
     }
 
-    submitHandler = () => {
+    async submitHandler() {
 
         const listName = this.state.listName
         const listItems = this.state.listItems
         const listProperties = this.state.listProperties
-        // console.log(listName, listItems, listProperties)
-        this.props.handleRandomListCreate(listName, listItems)
-            .then((res) => {
-                this.props.navigation.navigate({
-                    routeName: 'SelectList', params: {
-                        listType: 'random'
-                    }
-                })
-            })
-            .catch(err => {
+        const listType = this.state.listType
+        const db = SQLite.openDatabase('SelectSwitch.db')
 
+        // let promise = new Promise((resolve, reject) => {
+           let promise = await db.transaction((txn) => {
+                txn.executeSql(`INSERT INTO lists (listName,listType,repeatResults,storeResults) VALUES(?,?,?,?)`,
+                    ['listName', 'listType', true, true],
+                    (_, result) => {
+                        resolve(result)
+                        console.log('Data Inserted')
+                        this.props.handleRandomListCreate(listName, listItems)
+                        this.props.navigation.navigate({
+                            routeName: 'SelectList', params: {
+                                listType: 'random'
+                            }
+                        })
+                        return(result)
+                    },
+                    (_, err) => {
+                        reject(err)
+                        console.log(err)
+                        return(err)
+                    }
+                )
             })
+        // });
+
+        // let result = await promise
+        console.log(promise)
+        // Promise.all(promise)
+        // .then(res=>{
+        //     console.log(res)
+        // })
+
+
+
     }
 
 
@@ -324,7 +351,6 @@ const styles = StyleSheet.create({
     }
 })
 
-import { connect } from 'react-redux'
 
 
 
@@ -332,7 +358,7 @@ const mapStateToProps = (state) => ({
 
 })
 
-const mapDispatchToProps = async (dispatch) => {
+const mapDispatchToProps = (dispatch) => {
     return {
         handleRandomListCreate: (listName, listItems) => dispatch({ type: 'CREATE_RANDOM_LIST', listName: listName, listItems: listItems })
     }

@@ -4,7 +4,7 @@ import * as SQLite from 'expo-sqlite';
 const db = SQLite.openDatabase('SelectSwitch.db')
 
 export const createList = (listName, listType, repeatResults, storeResults) => {
-    const propmise = new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         db.transaction((txn) => {
             txn.executeSql(`INSERT INTO lists (listName,listType,repeatResults,storeResults) VALUES(?,?,?,?)`,
                 [listName, listType, repeatResults, storeResults],
@@ -19,5 +19,6 @@ export const createList = (listName, listType, repeatResults, storeResults) => {
             )
         })
     })
+
 
 }

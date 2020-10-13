@@ -14,25 +14,20 @@ const initialState = {
 export const countReducer = function (state = initialState, action) {
     switch (action.type) {
         case "CREATE_RANDOM_LIST":
-            createRandomList(action.listName, action.listItems)
-                .then((res) => {
-                    console.log(res)
-                    const lists = initialState.lists
-                    const listsItems = initialState.listsItems
-                    lists.push(res[0])
-                    listsItems.push(res[1])
-                    const updatedState = {
-                        ...initialState,
-                        lists: lists,
-                        listsItems: listsItems
-                    }
-                    //   console.log(updatedState)
-                    return updatedState
+            const res = createRandomList(action.listName, action.listItems)
 
-                })
-                .catch(err => {
-                    console.log(err)
-                })
+            const lists = initialState.lists
+            const listsItems = initialState.listsItems
+            lists.push(res[0])
+            listsItems.push(res[1])
+            const updatedState = {
+                ...initialState,
+                lists: lists,
+                listsItems: listsItems
+            }
+            return updatedState
+
+
 
         case "DECREMENT":
             return state;
