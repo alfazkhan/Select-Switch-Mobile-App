@@ -37,7 +37,7 @@ export const init = () => {
         })
     })
     db.transaction((txn) => {
-        txn.executeSql('CREATE TABLE IF NOT EXISTS listItemProperty (id INTEGER NOT NULL PRIMARY KEY, listItemID INTEGER NOT NULL, propertyID INTEGER NOT NULL, value INTEGER NOT NULL);',
+        txn.executeSql('CREATE TABLE IF NOT EXISTS listItemProperty (id INTEGER NOT NULL PRIMARY KEY, listItemID INTEGER NOT NULL,listID INTEGER NOT NULL, propertyID INTEGER NOT NULL, value INTEGER NOT NULL);',
         [],
         ()=>{
             console.log('List Item Properties table Created')

@@ -9,6 +9,11 @@ import Checkbox from '@react-native-community/checkbox';
 import { Entypo } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as SQLite from 'expo-sqlite';
+import { connect } from 'react-redux'
+import { deleteAllListItem, fetchListItems } from '../Helper/ListItems';
+import { fetchListItemProperty } from '../Helper/listItemProperty';
+import { fetchProperties } from '../Helper/Properties';
+import { createResult, fetchResult } from '../Helper/Results';
 
 import {
     AdMobBanner,
@@ -32,128 +37,61 @@ class ResultScreen extends Component {
         previousResults: [],
         listID: this.props.navigation.getParam('id'),
         loaded: false,
-        db: SQLite.openDatabase('SelectSwitch.db')
+        db: SQLite.openDatabase('SelectSwitch.db'),
+        listItemProperties: []
 
     }
 
-    componentDidMount() {
+    componentDidMount = async () => {
         //fetchListItems
-        const db = this.state.db
-        db.transaction((txn) => {
-            txn.executeSql(`SELECT * FROM listItems where listID=${this.state.listID}`,
-                [],
-                (_, result) => {
 
-                    const listItems = result.rows._array
-                    this.setState({
-                        currentListItems: listItems,
-                    })
-
-
-                },
-                (_, err) => {
-                    console.log(err)
-                }
-            )
-        })
-
-        db.transaction((txn) => {
-            txn.executeSql(`SELECT * FROM lists where id=${this.state.listID}`,
-                [],
-                (_, result) => {
-
-                    const list = result.rows._array
-                    this.setState({
-                        repeatResults: list[0].repeatResults === 1 ? true : false,
-                        storeResults: list[0].storeResults === 1 ? true : false,
-                        loaded: true
-                    })
-
-                },
-                (_, err) => {
-                    console.log(err)
-                }
-            )
-        })
-
-        db.transaction((txn) => {
-            txn.executeSql(`SELECT * from results where listID=${this.state.listID} order by id desc limit 10`,
-                [],
-                (_, result) => {
-                    const results = result.rows._array.reverse()
-                    const previousResults = this.state.previousResults
-                    // console.log(results)
-                    for (var i = 0; i < results.length; i++) {
-                        console.log(results[i].result)
-                        previousResults.unshift(results[i].result)
-                    }
-                    this.setState({
-                        previousResults: previousResults
-                    })
-
-                },
-                (_, err) => {
-                    console.log(err)
-                }
-            )
-        })
-
-        let listItems = []
-        let listProperties = []
-        if (this.state.listType === 'random') {
-            listItems = ['Poha', 'Pizza', 'Samosa']
-
-        } else {
-            listItems = [
-                {
-                    listItem: 'Nokia',
-                    properties: [30, 70, 40]
-                },
-                {
-                    listItem: 'Samsung',
-                    properties: [90, 80, 60]
-                },
-                {
-                    listItem: 'iPhone',
-                    properties: [100, 50, 95]
-                }
-            ]
-            listProperties = [
-                {
-                    propertyName: 'Camera',
-                    importance: 70,
-                    info: 'How good is Camera',
-                    negative: false
-                },
-                {
-                    propertyName: 'Looks',
-                    importance: 30,
-                    info: 'How phone looks',
-                    negative: false
-                },
-                {
-                    propertyName: 'Price',
-                    importance: 100,
-                    info: 'What is the cost of phone',
-                    negative: true
-                },
-            ]
-        }
-
+        let listItems = await fetchListItems(this.state.listID)
+        listItems = listItems.rows._array
         const propertyCollpse = []
         for (var i = 0; i < listItems.length; i++) {
             propertyCollpse[i] = false
+        }
+        this.setState({
+            currentListItems: listItems,
+            propertyCollpse: propertyCollpse
+        })
+
+        let results = await fetchResult(this.state.listID)
+        results=results.rows._array
+        const previousResults = []
+        for (var i = 0; i < results.length; i++) {
+            previousResults[i]=results[i].result
+        }
+        this.setState({
+            previousResults: previousResults
+        })
+
+        if (this.state.listType === 'logical') {
+            let result = await fetchListItemProperty(this.state.listID)
+            result = result.rows._array
+            const listItemProperties = this.state.listItemProperties
+            for (var i = 0; i < result.length; i++) {
+                listItemProperties.push(result[i])
+            }
+
+            this.setState({
+                listItemProperties: listItemProperties
+            })
+
+            let properties = await fetchProperties(this.state.listID)
+            properties = properties.rows._array
+            this.setState({
+                listProperties: properties
+            })
         }
 
         const repeatResults = true
         const storeResults = true
 
         this.setState({
-            currentListItems: listItems,
-            listProperties: listProperties,
-            propertyCollpse: propertyCollpse,
             repeatResults: repeatResults,
-            storeResults: storeResults
+            storeResults: storeResults,
+            loaded: true
         })
     }
 
@@ -230,7 +168,7 @@ class ResultScreen extends Component {
 
     }
 
-    calculateRandomResult = () => {
+    calculateRandomResult = async () => {
 
         const currentListItems = this.state.currentListItems
         const randomIndex = parseInt(Math.random() * currentListItems.length)
@@ -242,18 +180,7 @@ class ResultScreen extends Component {
                 previousResults.pop()
             }
             previousResults.unshift(result)
-            const db = this.state.db
-            db.transaction((txn) => {
-                txn.executeSql(`INSERT into results (listID,result) VALUES(?,?)`,
-                    [this.state.listID, result],
-                    (_, queryResult) => {
-                        console.log(queryResult)
-                    },
-                    (_, err) => {
-                        console.log(err)
-                    }
-                )
-            })
+            createResult(this.state.listID,result)
             this.setState({
                 previousResults: previousResults
             })
@@ -270,33 +197,7 @@ class ResultScreen extends Component {
     }
 
     calculateLogicalResult = () => {
-        // (100 - property1Value) * importance + property2Value * importance
-        const currentListItems = this.state.currentListItems
-        const listProperties = this.state.listProperties
-        const resultArray = []
-        for (var i = 0; i < currentListItems.length; i++) {
-            const score = 0
-            for (var j = 0; j < listProperties.length; j++) {
-                score += listProperties[j].negative ? (100 - currentListItems[i].properties[j]) * listProperties[j].importance : currentListItems[i].properties[j] * listProperties[j].importance
-            }
-            resultArray.push(score)
-        }
-        const result = currentListItems[this.maxElementIndex(resultArray)].listItem
-        const previousResults = this.state.previousResults
-        if (this.state.storeResults) {
-            if (previousResults.length < 10) {
-
-            } else {
-                previousResults.pop()
-            }
-            previousResults.unshift(result)
-            this.setState({
-                previousResults: previousResults
-            })
-        }
-        this.setState({
-            result: result
-        })
+        
 
     }
 
@@ -309,8 +210,15 @@ class ResultScreen extends Component {
         return maxIndex
     }
 
+    getListItemPropertyValue=(item,prop)=>{
+        console.log(item,prop)
+        return 100
+    }
+
     render() {
         const listItems = this.state.currentListItems.map((item, index) => {
+            // console.log(item)
+            // return
             return (
                 <View key={item.id}>
                     <View style={styles.propertyContainer}>
@@ -333,11 +241,17 @@ class ResultScreen extends Component {
                         {this.state.listType === 'logical' && this.state.propertyCollpse[index]
                             ?
                             this.state.listProperties.map((prop, propIndex) => {
+                                // return
+                                const listItemProperties = this.state.listItemProperties
+                                let value
+                                for(var i=0;i<listItemProperties.length;i++){
+                                    if(listItemProperties[i].listID === item.id && listItemProperties[i].propertyID === prop.id){
+                                        value = listItemProperties[i].value
+                                    }
+                                }
                                 return (
-
-                                    <View style={{ flex: 1, flexDirection: 'row', marginLeft: 20, marginVertical: 10 }}>
+                                    <View style={{ flex: 1, flexDirection: 'row', marginLeft: 20, marginVertical: 10 }} key={prop.id}>
                                         <Text style={{ color: '#fff', flex: 2, fontSize: 16, marginLeft: Dimensions.get('screen').width < 400 ? 25 : 35 }}>{prop.propertyName}</Text>
-
                                         <Slider
                                             style={{ height: 25, width: 50, flex: 5 }}
                                             minimumValue={0}
@@ -345,14 +259,14 @@ class ResultScreen extends Component {
                                             minimumTrackTintColor={prop.negative ? Colors.red : Colors.green}
                                             maximumTrackTintColor="#333"
                                             thumbTintColor={prop.negative ? Colors.red : Colors.green}
-                                            value={item.properties[propIndex]}
+                                            value={value}
                                             onValueChange={(value) => this.propertyValueChangeHandler(value, index, propIndex)}
                                             onSlidingStart={() => this.setState({ sliderValueVisible: true })}
                                             onSlidingComplete={() => this.setState({ sliderValueVisible: false })}
                                         />
                                         {this.state.sliderValueVisible
                                             ?
-                                            <Text style={{ flex: 1, textAlignVertical: 'center', color: '#fff' }}>{item.properties[propIndex]}</Text>
+                                            <Text style={{ flex: 1, textAlignVertical: 'center', color: '#fff' }}>Property</Text>
                                             :
                                             <AntDesign name="infocirlce" size={16} color="white" onPress={() => this.infoAlertHandler(index)} style={{ flex: 1, textAlignVertical: 'center' }} />
                                         }
@@ -467,6 +381,8 @@ class ResultScreen extends Component {
 ResultScreen.navigationOptions = (navData) => {
     const listName = navData.navigation.getParam('listName')
     const listID = navData.navigation.getParam('id')
+    const listType = navData.navigation.getParam('listType')
+    // console.log(navData)
     return {
         headerTitle: listName,
         headerRight: () => (
@@ -505,13 +421,13 @@ ResultScreen.navigationOptions = (navData) => {
                                             txn.executeSql(`DELETE FROM lists where id=?`,
                                                 [listID],
                                                 (_, result) => {
-
+                                                    deleteAllListItem(listID)
                                                     console.log(result)
-                                                    // navData.navigation.pop()
+                                                    navData.navigation.pop()
                                                     navData.navigation.popToTop()
                                                     navData.navigation.navigate({
                                                         routeName: 'SelectList', params: {
-                                                            listType: this.props.navigation.getParam('listType')
+                                                            listType: listType
                                                         }
                                                     })
 
@@ -608,7 +524,7 @@ const styles = StyleSheet.create({
     }
 })
 
-import { connect } from 'react-redux'
+
 
 const mapStateToProps = (state) => ({
 

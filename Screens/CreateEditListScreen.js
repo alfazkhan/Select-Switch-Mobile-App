@@ -11,7 +11,9 @@ import { connect } from 'react-redux'
 import { Ionicons } from '@expo/vector-icons';
 import { createListItem, deleteListItem, updateListItem } from '../Helper/ListItems';
 import * as SQLite from 'expo-sqlite';
-import { updateList } from '../Helper/Lists';
+import { createList, updateList } from '../Helper/Lists';
+import { createProperty } from '../Helper/Properties';
+import { createListItemProperty } from '../Helper/listItemProperty';
 
 
 class CreateEditListScreen extends Component {
@@ -37,7 +39,7 @@ class CreateEditListScreen extends Component {
                 txn.executeSql(`SELECT * FROM lists where id = ${this.state.listID}`,
                     [],
                     (_, result) => {
-
+                        console.log(result)
                         const list = result.rows._array[0]
                         this.setState({
                             listName: list.listName,
@@ -72,7 +74,8 @@ class CreateEditListScreen extends Component {
         }
         const listType = this.props.navigation.getParam('listType')
         this.setState({
-            listType: listType
+            listType: listType,
+            loaded: true
         })
     }
 
@@ -108,27 +111,39 @@ class CreateEditListScreen extends Component {
     listItemSubmitHandler = () => {
         const listItems = this.state.listItems
         const newItem = this.state.listItemName
-        const db = this.state.db
-        db.transaction((txn) => {
-            txn.executeSql(`INSERT INTO listItems (listID,itemName) VALUES(?,?)`,
-                [this.state.listID,newItem],
-                (_,result) => {
-                    listItems.push({
-                        itemName: newItem,
-                        id: result.insertId
-                    })
-                    console.log(result)
-                    this.setState({
-                        listItems: listItems,
-                        listItemName: ''
-                    })
-                },
-                (_, err) => {
-                    console.log(err)
-                }
-            )
-        })
-        
+        if (this.state.mode === 'edit') {
+            const db = this.state.db
+            console.log(newItem)
+            db.transaction((txn) => {
+                txn.executeSql(`INSERT INTO listItems (listID,itemName) VALUES(?,?)`,
+                    [this.state.listID, newItem],
+                    (_, result) => {
+                        listItems.push({
+                            itemName: newItem,
+                            id: result.insertId
+                        })
+                        console.log(result)
+                        this.setState({
+                            listItems: listItems,
+                            listItemName: ''
+                        })
+                    },
+                    (_, err) => {
+                        console.log(err)
+                    }
+                )
+            })
+        } else {
+            listItems.push({
+                itemName: newItem,
+                id: new Date()
+            })
+            this.setState({
+                listItems: listItems,
+                listItemName: ''
+            })
+        }
+
     }
 
     listItemDeleteHandler = (id) => {
@@ -149,13 +164,14 @@ class CreateEditListScreen extends Component {
                     style: "cancel"
                 },
                 {
-                    text: "OK", onPress: () => {
+                    text: "OK", onPress: async () => {
 
+                        const res = await deleteListItem(listItems[index].id)
+                        console.log(res)
                         listItems.splice(index, 1)
                         this.setState({
                             listItems: listItems
                         })
-                        deleteListItem(listItems[index].id)
                     }
                 }
             ],
@@ -179,45 +195,77 @@ class CreateEditListScreen extends Component {
         })
     }
 
-    submitHandler = () => {
+    propertyNameChangeHandler = (index, event) => {
+        const listProperties = this.state.listProperties
+        listProperties[index].propertyName = event
+        this.setState({
+            listProperties: listProperties
+        })
+    }
+
+    propertyInfoChangeHandler = (index, event) => {
+        const listProperties = this.state.listProperties
+        listProperties[index].info = event
+        this.setState({
+            listProperties: listProperties
+        })
+    }
+
+    propertyDeleteHandler = (index) => {
+        const listProperties = this.state.listProperties
+        listProperties.splice(index, 1)
+        this.setState({
+            listProperties: listProperties
+        })
+    }
+
+    submitHandler = async () => {
 
         const listName = this.state.listName
-
+        const listItems = this.state.listItems
         const listProperties = this.state.listProperties
         const listType = this.state.listType
-
         const db = SQLite.openDatabase('SelectSwitch.db')
-
+        const listItemIDs = []
+        const listPropertyIDs = []
         if (this.state.mode === 'create') {
-            db.transaction((txn) => {
-                txn.executeSql(`INSERT INTO lists (listName,listType,repeatResults,storeResults) VALUES(?,?,?,?)`,
-                    [listName, listType, true, true],
-                    (_, result) => {
-                        const listItems = this.state.listItems
-                        // console.log(listItems)
-                        for (var i = 0; i < listItems.length; i++) {
-                            createListItem(result.insertId, listItems[i].value)
-                        }
-
-                        this.props.handleRandomListCreate(listName, listItems)
-                        this.props.navigation.pop()
-                        this.props.navigation.pop()
-                        this.props.navigation.navigate({
-                            routeName: 'SelectList', params: {
-                                listType: this.state.listType
-                            }
-                        })
-                        return result
-                    },
-                    (_, err) => {
-                        console.log(err)
-                        // return reject(err)
-                    }
-                )
+            console.log("Starting Process")
+            const listRes = await createList(listName, listType, true, true)
+            const listID = listRes.insertId
+            for (var i = 0; i < listItems.length; i++) {
+                const itemRes = await createListItem(listID, listItems[i].itemName)
+                listItemIDs.push(itemRes.insertId)
+            }
+            if (this.state.listType === 'logical') {
+                for (var i = 0; i < listProperties.length; i++) {
+                    // console.log(listProperties[i])
+                    const propertyRes = await createProperty(listID,
+                        listProperties[i].propertyName,
+                        listProperties[i].importance,
+                        listProperties[i].info,
+                        listProperties[i].negative ? 1 : 0
+                    )
+                    listPropertyIDs.push(propertyRes.insertId)
+                }
+            }
+            // console.log(listItemIDs)
+            // console.log(listPropertyIDs)
+            for (var i = 0; i < listItemIDs.length; i++) {
+                for (var j = 0; j < listPropertyIDs.length; j++) {
+                    await createListItemProperty(listItemIDs[i], listPropertyIDs[j], listID, 100)
+                }
+            }
+            this.props.navigation.pop()
+            this.props.navigation.pop()
+            this.props.navigation.navigate({
+                routeName: 'SelectList', params: {
+                    listType: this.state.listType
+                }
             })
+
         }
         else {
-            updateList(listName,this.state.listID)
+            await updateList(listName, this.state.listID)
             this.props.navigation.pop()
             this.props.navigation.pop()
             this.props.navigation.navigate({
@@ -227,9 +275,8 @@ class CreateEditListScreen extends Component {
                     id: this.state.listID,
                 }
             })
-
         }
-
+        
 
 
     }
@@ -249,13 +296,25 @@ class CreateEditListScreen extends Component {
 
                             {this.state.listProperties.map((item, index) => {
                                 return (
-                                    <View style={{ marginTop: 20, marginBottom: 40 }, { ...globalStyles.card }}>
+                                    <View style={{ marginTop: 20, marginBottom: 40 }, { ...globalStyles.card }} key={item.id}>
                                         <View style={{ flexDirection: 'row' }}>
-                                            <TextInput placeholder="Camera" placeholderTextColor='#fff' style={styles.textInput} value={this.state.listProperties[index].propertyName} />
-                                            <MaterialIcons name="delete" size={30} style={styles.propertyDeleteIcon} color={Colors.red} />
+                                            <TextInput placeholder="Camera"
+                                                placeholderTextColor='#fff'
+                                                style={styles.textInput}
+                                                value={this.state.listProperties[index].propertyName}
+                                                onChangeText={this.propertyNameChangeHandler.bind(this, index)}
+                                            />
+                                            <TouchableOpacity>
+                                                <MaterialIcons name="delete" size={30} style={styles.propertyDeleteIcon} color={Colors.red} onPress={() => this.propertyDeleteHandler(index)} />
+                                            </TouchableOpacity>
                                         </View>
                                         <View style={{ flexDirection: 'row' }}>
-                                            <TextInput placeholder="Property Info" placeholderTextColor='#fff' style={styles.textInput} value={this.state.listProperties[index].info} />
+                                            <TextInput placeholder="Property Info"
+                                                placeholderTextColor='#fff'
+                                                style={styles.textInput}
+                                                value={this.state.listProperties[index].info}
+                                                onChangeText={this.propertyInfoChangeHandler.bind(this, index)}
+                                            />
                                         </View>
                                         <View style={styles.importanceInput}>
                                             <Text style={styles.sliderText}>Importance</Text>
@@ -316,7 +375,10 @@ class CreateEditListScreen extends Component {
                         })}
                     </View>
                     <View style={styles.root}>
-                        <Button title="Save" onPress={this.submitHandler} />
+                        <Button title="Save" onPress={() => {
+                            this.submitHandler()
+                        }}
+                        />
                         <Button title="Cancel" />
                     </View>
                 </ScrollView>

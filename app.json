@@ -1,12 +1,17 @@
 {
   "expo": {
-    "name": "selectSwitch",
-    "slug": "selectSwitch",
-    "version": "1.0.0",
+    "name": "Select Switch",
+    "slug": "selectswitch",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -16,16 +21,14 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "android": {
-      "config": {
-        "googleMobileAdsAppId": "ca-app-pub-3940256099942544/6300978111"
-      }
-    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jungleebulla.selectswitch",
+      "buildNumber": "1.0.0"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
+    "android": {
+      "package": "com.jungleebulla.selectswitch",
+      "versionCode": 1
     },
     "description": ""
   }

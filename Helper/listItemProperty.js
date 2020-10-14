@@ -3,29 +3,29 @@ import * as SQLite from 'expo-sqlite';
 
 const db = SQLite.openDatabase('SelectSwitch.db')
 
-export const createListItem = (listID, itemName) => {
+export const createListItemProperty = (listItemID, propertyID,listID, value) => {
     const promise = new Promise((resolve, reject) => {
         db.transaction((txn) => {
-            txn.executeSql(`INSERT INTO listItems (listID,itemName) VALUES(?,?)`,
-                [listID, itemName],
+            txn.executeSql(`INSERT INTO listItemProperty (listItemID,propertyID,listID, value) VALUES(?,?,?,?)`,
+                [listItemID, propertyID,listID, value],
                 (_, result) => {
                     resolve(result)
+                    console.log(result)
                 },
                 (_, err) => {
                     reject(err)
+                    console.log(err)
                 }
             )
         })
     })
     return promise
-
-
 }
 
-export const fetchListItems = (listID) => {
+export const fetchListItemProperty = (listID) => {
     const promise = new Promise((resolve, reject) => {
         db.transaction((txn) => {
-            txn.executeSql(`SELECT * FROM listItems where listID=?`,
+            txn.executeSql(`SELECT * FROM listItemProperty where listID=?`,
                 [listID],
                 (_, result) => {
                     resolve(result)
@@ -36,30 +36,13 @@ export const fetchListItems = (listID) => {
             )
         })
     })
-
     return promise
 }
 
-export const deleteListItem = (id) => {
-    const promise = new Promise((resolve, reject) => {
-        db.transaction((txn) => {
-            txn.executeSql(`DELETE FROM listItems where id=?`,
-                [id],
-                (_, result) => {
-                    resolve(result)
-                },
-                (_, err) => {
-                    reject(err)
-                }
-            )
-        })
-    })
 
-    return promise
-}
 
 export const deleteAllListItem = (listID) => {
-    const promise = new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         db.transaction((txn) => {
             txn.executeSql(`DELETE FROM listItems where listID=?`,
                 [listID],
@@ -75,6 +58,6 @@ export const deleteAllListItem = (listID) => {
         })
     })
 
-    return promise
+
 }
 

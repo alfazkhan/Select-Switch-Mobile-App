@@ -3,18 +3,16 @@ import * as SQLite from 'expo-sqlite';
 
 const db = SQLite.openDatabase('SelectSwitch.db')
 
-export const createList = (listName, listType, repeatResults, storeResults) => {
+export const createResult = (listID, result) => {
     const promise = new Promise((resolve, reject) => {
         db.transaction((txn) => {
-            txn.executeSql(`INSERT INTO lists (listName,listType,repeatResults,storeResults) VALUES(?,?,?,?)`,
-                [listName, listType, repeatResults, storeResults],
+            txn.executeSql(`INSERT INTO results (listID, result) VALUES(?,?)`,
+                [listID, result],
                 (_, result) => {
                     resolve(result)
-                    // console.log('Data Inserted')
                 },
                 (_, err) => {
                     reject(err)
-                    console.log(err)
                 }
             )
         })
@@ -22,18 +20,16 @@ export const createList = (listName, listType, repeatResults, storeResults) => {
     return promise
 }
 
-export const updateList = (listName, id) => {
+export const fetchResult = (listID) => {
     const promise = new Promise((resolve, reject) => {
         db.transaction((txn) => {
-            txn.executeSql(`UPDATE lists SET listName=? where id=?`,
-                [listName, id],
+            txn.executeSql(`SELECT * from results where listID=? order by id desc limit 10`,
+                [listID],
                 (_, result) => {
                     resolve(result)
-                    console.log('Data Inserted')
                 },
                 (_, err) => {
                     reject(err)
-                    console.log(err)
                 }
             )
         })
