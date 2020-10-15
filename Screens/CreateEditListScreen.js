@@ -14,6 +14,7 @@ import * as SQLite from 'expo-sqlite';
 import { createList, updateList } from '../Helper/Lists';
 import { createProperty } from '../Helper/Properties';
 import { createListItemProperty } from '../Helper/listItemProperty';
+import CustomButton from '../Components/CustomButton';
 
 
 class CreateEditListScreen extends Component {
@@ -276,7 +277,7 @@ class CreateEditListScreen extends Component {
                 }
             })
         }
-        
+
 
 
     }
@@ -363,7 +364,10 @@ class CreateEditListScreen extends Component {
                     </View>
 
                     <View style={globalStyles.card}>
-                        <Text style={globalStyles.heading}>Current List</Text>
+                        {this.state.listItems.length > 0
+                            ?
+                            <Text style={globalStyles.heading}>Current List</Text>
+                            : null}
                         {this.state.listItems.map(item => {
                             return (
                                 <View style={styles.currentListItem} key={item.id}>
@@ -375,11 +379,23 @@ class CreateEditListScreen extends Component {
                         })}
                     </View>
                     <View style={styles.root}>
-                        <Button title="Save" onPress={() => {
-                            this.submitHandler()
-                        }}
+
+                        <CustomButton text="Save"
+                            Press={() => {
+                                this.submitHandler()
+                            }}
+                            height={40}
+                            width={Dimensions.get('screen').width / 2}
+                            style={{ marginVertical: 10, marginTop: 20 }}
                         />
-                        <Button title="Cancel" />
+                        <CustomButton text="Cancel"
+                            Press={() => {
+                                this.props.navigation.goBack()
+                            }}
+                            height={40}
+                            width={Dimensions.get('screen').width / 2}
+                        />
+
                     </View>
                 </ScrollView>
                 : null

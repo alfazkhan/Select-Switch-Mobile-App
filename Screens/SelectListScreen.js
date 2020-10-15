@@ -4,6 +4,7 @@ import { FlatList, ScrollView, } from 'react-native-gesture-handler'
 import { connect } from 'react-redux'
 import * as SQLite from 'expo-sqlite';
 import { Ionicons } from '@expo/vector-icons';
+import CustomButton from '../Components/CustomButton';
 
 
 
@@ -67,7 +68,7 @@ class SelectListScreen extends Component {
                     )
                 })}
 
-                <Button style={styles.button} title="Create New List" onPress={() => {
+                {/* <Button style={styles.button} title="Create New List" onPress={() => {
                     // this.props.navigation.pop()
                     this.props.navigation.navigate({
                         routeName: 'CreateEdit',
@@ -77,7 +78,22 @@ class SelectListScreen extends Component {
 
                         }
                     })
-                }} />
+                }} /> */}
+                <CustomButton text="Create New List"
+                    Press={() => {
+                        // this.props.navigation.pop()
+                        this.props.navigation.navigate({
+                            routeName: 'CreateEdit',
+                            params: {
+                                mode: 'create',
+                                listType: this.props.navigation.getParam('listType')
+
+                            }
+                        })
+                    }}
+                    height={40}
+                    style={{marginTop: 20}}
+                />
             </ScrollView>
 
         )
