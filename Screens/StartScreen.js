@@ -15,7 +15,6 @@ class StartScreen extends Component {
                     <CustomButton
                         text="Random Choice"
                         Press={() => {
-                            console.log("object")
                             this.props.navigation.navigate({
                                 routeName: 'SelectList', params: {
                                     listType: 'random'
@@ -30,7 +29,6 @@ class StartScreen extends Component {
                     <CustomButton
                         text="Logical Choice"
                         Press={() => {
-                            console.log("object")
                             this.props.navigation.navigate({
                                 routeName: 'SelectList', params: {
                                     listType: 'logical'

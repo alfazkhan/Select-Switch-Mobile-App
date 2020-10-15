@@ -249,8 +249,7 @@ class CreateEditListScreen extends Component {
                     listPropertyIDs.push(propertyRes.insertId)
                 }
             }
-            // console.log(listItemIDs)
-            // console.log(listPropertyIDs)
+            console.log(listID)
             for (var i = 0; i < listItemIDs.length; i++) {
                 for (var j = 0; j < listPropertyIDs.length; j++) {
                     await createListItemProperty(listItemIDs[i], listPropertyIDs[j], listID, 100)

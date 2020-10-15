@@ -38,7 +38,7 @@ class ResultScreen extends Component {
         listID: this.props.navigation.getParam('id'),
         loaded: false,
         db: SQLite.openDatabase('SelectSwitch.db'),
-        listItemProperties: []
+        listItemProperties: {}
 
     }
 
@@ -56,28 +56,38 @@ class ResultScreen extends Component {
             propertyCollpse: propertyCollpse
         })
 
+        //fetch Results
         let results = await fetchResult(this.state.listID)
-        results=results.rows._array
+        results = results.rows._array
         const previousResults = []
         for (var i = 0; i < results.length; i++) {
-            previousResults[i]=results[i].result
+            previousResults[i] = results[i].result
         }
         this.setState({
             previousResults: previousResults
         })
 
         if (this.state.listType === 'logical') {
+            //fetchlistItemproperty
             let result = await fetchListItemProperty(this.state.listID)
             result = result.rows._array
-            const listItemProperties = this.state.listItemProperties
+            const itemProperties = this.state.listItemProperties
             for (var i = 0; i < result.length; i++) {
-                listItemProperties.push(result[i])
+                const tempArray = []
+                itemProperties[result[i].listItemID] = tempArray
+
             }
 
-            this.setState({
-                listItemProperties: listItemProperties
-            })
+            for (var i = 0; i < result.length; i++) {
+                const tempArray = itemProperties[result[i].listItemID]
+                tempArray.push(result[i].value)
+                itemProperties[result[i].listItemID] = tempArray
 
+            }
+            this.setState({
+                listItemProperties: itemProperties
+            })
+            //fetchProperties
             let properties = await fetchProperties(this.state.listID)
             properties = properties.rows._array
             this.setState({
@@ -120,12 +130,11 @@ class ResultScreen extends Component {
         })
     }
 
-    propertyValueChangeHandler = (value, itemIndex, propertyIndex) => {
-
-        const listItems = this.state.currentListItems
-        listItems[itemIndex].properties[propertyIndex] = parseInt(value)
+    propertyValueChangeHandler = (value, itemID, propertyIndex) => {
+        const listItemProperties = this.state.listItemProperties
+        listItemProperties[itemID][propertyIndex] = parseInt(value)
         this.setState({
-            currentListItems: listItems
+            listItemProperties: listItemProperties
         })
     }
 
@@ -180,7 +189,7 @@ class ResultScreen extends Component {
                 previousResults.pop()
             }
             previousResults.unshift(result)
-            createResult(this.state.listID,result)
+            createResult(this.state.listID, result)
             this.setState({
                 previousResults: previousResults
             })
@@ -197,7 +206,35 @@ class ResultScreen extends Component {
     }
 
     calculateLogicalResult = () => {
-        
+        //(100-NegativeValue)*importance + PositiveValue*importance
+        const currentListItems = this.state.currentListItems
+        const listItemProperties = this.state.listItemProperties
+        const listProperties = this.state.listProperties
+        const sumValues = []
+        for (var i = 0; i < currentListItems.length; i++) {
+            let sum = 0
+            for (var j = 0; j < listProperties.length; j++) {
+                if (listProperties[j].negative) {
+                    sum += (100 - listItemProperties[currentListItems[i].id][j]) * listProperties[j].importance
+                } else {
+                    sum += listItemProperties[currentListItems[i].id][j] * listProperties[j].importance
+                }
+            }
+            sumValues.push(sum)
+        }
+        const result = currentListItems[this.maxElementIndex(sumValues)].itemName
+        const previousResults = this.state.previousResults
+        if (this.state.storeResults) {
+            if (previousResults.length > 10) {
+                previousResults.pop()
+            }
+            previousResults.unshift(result)
+            createResult(this.state.listID, result)
+            this.setState({
+                previousResults: previousResults,
+                result: result
+            })
+        }
 
     }
 
@@ -210,8 +247,8 @@ class ResultScreen extends Component {
         return maxIndex
     }
 
-    getListItemPropertyValue=(item,prop)=>{
-        console.log(item,prop)
+    getListItemPropertyValue = (item, prop) => {
+        console.log(item, prop)
         return 100
     }
 
@@ -243,12 +280,7 @@ class ResultScreen extends Component {
                             this.state.listProperties.map((prop, propIndex) => {
                                 // return
                                 const listItemProperties = this.state.listItemProperties
-                                let value
-                                for(var i=0;i<listItemProperties.length;i++){
-                                    if(listItemProperties[i].listID === item.id && listItemProperties[i].propertyID === prop.id){
-                                        value = listItemProperties[i].value
-                                    }
-                                }
+
                                 return (
                                     <View style={{ flex: 1, flexDirection: 'row', marginLeft: 20, marginVertical: 10 }} key={prop.id}>
                                         <Text style={{ color: '#fff', flex: 2, fontSize: 16, marginLeft: Dimensions.get('screen').width < 400 ? 25 : 35 }}>{prop.propertyName}</Text>
@@ -259,14 +291,14 @@ class ResultScreen extends Component {
                                             minimumTrackTintColor={prop.negative ? Colors.red : Colors.green}
                                             maximumTrackTintColor="#333"
                                             thumbTintColor={prop.negative ? Colors.red : Colors.green}
-                                            value={value}
-                                            onValueChange={(value) => this.propertyValueChangeHandler(value, index, propIndex)}
+                                            value={this.state.listItemProperties[item.id][propIndex]}
+                                            onValueChange={(value) => this.propertyValueChangeHandler(value, item.id, propIndex)}
                                             onSlidingStart={() => this.setState({ sliderValueVisible: true })}
                                             onSlidingComplete={() => this.setState({ sliderValueVisible: false })}
                                         />
                                         {this.state.sliderValueVisible
                                             ?
-                                            <Text style={{ flex: 1, textAlignVertical: 'center', color: '#fff' }}>Property</Text>
+                                            <Text style={{ flex: 1, textAlignVertical: 'center', color: '#fff' }}>{this.state.listItemProperties[item.id][propIndex]}</Text>
                                             :
                                             <AntDesign name="infocirlce" size={16} color="white" onPress={() => this.infoAlertHandler(index)} style={{ flex: 1, textAlignVertical: 'center' }} />
                                         }
