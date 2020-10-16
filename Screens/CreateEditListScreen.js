@@ -282,20 +282,24 @@ class CreateEditListScreen extends Component {
             return
         }
 
-        if (listProperties.length === 0) {
-            this.validationAlert('Error!', "Properties Can't be empty")
-            return
-        }
-        for (var i = 0; i < listProperties.length; i++) {
-            if (listProperties[i].propertyName === '') {
-                this.validationAlert('Error!', "Property Name Can't be blank")
+        if (listType === 'logical') {
+
+            if (listProperties.length === 0) {
+                this.validationAlert('Error!', "Properties Can't be empty")
                 return
             }
-            if (listProperties[i].info === '') {
-                this.validationAlert('Error!', "Property Info Can't be blank")
-                return
+            for (var i = 0; i < listProperties.length; i++) {
+                if (listProperties[i].propertyName === '') {
+                    this.validationAlert('Error!', "Property Name Can't be blank")
+                    return
+                }
+                if (listProperties[i].info === '') {
+                    this.validationAlert('Error!', "Property Info Can't be blank")
+                    return
+                }
             }
         }
+
 
         if (listItems.length === 0) {
             this.validationAlert('Error!', "List Items Can't be empty")
