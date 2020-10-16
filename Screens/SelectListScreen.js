@@ -102,12 +102,12 @@ class SelectListScreen extends Component {
 
 SelectListScreen.navigationOptions = (navData) => {
     const title = navData.navigation.getParam('listType')
+    // console.log(title)
     return {
-        headerTitle: title === 'random' ? 'Random Selction' : 'Logical Selection',
+        headerTitle: title === 'random' ? 'Random Selction' : title === 'logical'?  'Logical Selection': 'Error',
         headerLeft: () => (
             <View style={styles.backIcon} >
                 <Ionicons name="md-arrow-back" size={24} color="white" onPress={() => {
-                    console.log("Back Button")
                     navData.navigation.popToTop()
                 }
                 }

@@ -39,18 +39,48 @@ export const fetchProperties = (listID) => {
     return promise
 }
 
-export const updateList = (listName, id) => {
+export const updateProperty = (propertyName,importance,info,negative,id) => {
     return new Promise((resolve, reject) => {
         db.transaction((txn) => {
-            txn.executeSql(`UPDATE lists SET listName=? where id=?`,
-                [listName, id],
+            txn.executeSql(`UPDATE properties SET propertyName=?,importance=?,info=?,negative=? where id=?`,
+                [propertyName,importance,info,negative,id],
                 (_, result) => {
                     resolve(result)
-                    console.log('Data Inserted')
                 },
                 (_, err) => {
                     reject(err)
-                    console.log(err)
+                }
+            )
+        })
+    })
+}
+
+export const deleteProperty = (id) => {
+    return new Promise((resolve, reject) => {
+        db.transaction((txn) => {
+            txn.executeSql(`DELETE from properties  where id=?`,
+                [id],
+                (_, result) => {
+                    resolve(result)
+                },
+                (_, err) => {
+                    reject(err)
+                }
+            )
+        })
+    })
+}
+
+export const deleteListProperties = (listID) => {
+    return new Promise((resolve, reject) => {
+        db.transaction((txn) => {
+            txn.executeSql(`DELETE from properties  where listID=?`,
+                [listID],
+                (_, result) => {
+                    resolve(result)
+                },
+                (_, err) => {
+                    reject(err)
                 }
             )
         })

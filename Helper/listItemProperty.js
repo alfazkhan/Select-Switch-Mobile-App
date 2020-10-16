@@ -41,18 +41,19 @@ export const fetchListItemProperty = (listID) => {
 
 
 
-export const deleteAllListItem = (listID) => {
+export const deleteAllListItemProperties = (listID) => {
     return new Promise((resolve, reject) => {
         db.transaction((txn) => {
-            txn.executeSql(`DELETE FROM listItems where listID=?`,
+            txn.executeSql(`DELETE FROM listItemProperty where listID=?`,
                 [listID],
                 (_, result) => {
-
-                    console.log(result)
+                    resolve(result)
+                    // console.log(result)
 
                 },
                 (_, err) => {
-                    console.log(err)
+                    reject(err)
+                    // console.log(err)
                 }
             )
         })

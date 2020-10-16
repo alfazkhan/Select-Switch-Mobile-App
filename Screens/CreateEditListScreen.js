@@ -9,10 +9,10 @@ import Checkbox from '@react-native-community/checkbox';
 import { globalStyles, Colors } from '../Styles/GlobalStyles';
 import { connect } from 'react-redux'
 import { Ionicons } from '@expo/vector-icons';
-import { createListItem, deleteListItem, updateListItem } from '../Helper/ListItems';
+import { createListItem, deleteListItem, fetchListItems, updateListItem } from '../Helper/ListItems';
 import * as SQLite from 'expo-sqlite';
-import { createList, updateList } from '../Helper/Lists';
-import { createProperty } from '../Helper/Properties';
+import { createList, fetchList, updateList } from '../Helper/Lists';
+import { createProperty, fetchProperties, updateProperty, deleteProperty } from '../Helper/Properties';
 import { createListItemProperty } from '../Helper/listItemProperty';
 import CustomButton from '../Components/CustomButton';
 
@@ -21,7 +21,7 @@ class CreateEditListScreen extends Component {
 
     state = {
         listItems: [],
-        listType: '',
+        listType: this.props.navigation.getParam('listType'),
         listName: '',
         mode: this.props.navigation.getParam('mode'),
         listItemName: '',
@@ -33,49 +33,44 @@ class CreateEditListScreen extends Component {
     }
 
 
-    componentDidMount() {
+    componentDidMount = async () => {
         if (this.state.mode === 'edit') {
             const db = this.state.db
-            db.transaction((txn) => {
-                txn.executeSql(`SELECT * FROM lists where id = ${this.state.listID}`,
-                    [],
-                    (_, result) => {
-                        console.log(result)
-                        const list = result.rows._array[0]
-                        this.setState({
-                            listName: list.listName,
-                            listType: list.listType,
-                            loaded: true
-                        })
 
-                    },
-                    (_, err) => {
-                        console.log(err)
-                    }
-                )
+            let list = await fetchList(this.state.listID)
+            list = list.rows._array[0]
+            this.setState({
+                listName: list.listName,
+                listType: list.listType,
             })
-            db.transaction((txn) => {
-                txn.executeSql(`SELECT * FROM listItems where listID=${this.state.listID}`,
-                    [],
-                    (_, result) => {
 
-                        const listItems = result.rows._array
-                        this.setState({
-                            listItems: listItems,
-                        })
-
-
-                    },
-                    (_, err) => {
-                        console.log(err)
-                    }
-                )
+            let listItems = await fetchListItems(this.state.listID)
+            listItems = listItems.rows._array
+            this.setState({
+                listItems: listItems
             })
+
+            if (this.state.listType === 'logical') {
+                let listProperties = await fetchProperties(this.state.listID)
+                listProperties = listProperties.rows._array
+                let fetchedListProperties = this.state.listProperties
+                for (var i = 0; i < listProperties.length; i++) {
+                    const newProperty = {
+                        propertyName: listProperties[i].propertyName,
+                        importance: listProperties[i].importance,
+                        info: listProperties[i].info,
+                        negative: listProperties[i].negative,
+                        id: listProperties[i].id
+                    }
+                    fetchedListProperties.push(newProperty)
+                }
+                this.setState({
+                    listProperties: fetchedListProperties
+                })
+            }
 
         }
-        const listType = this.props.navigation.getParam('listType')
         this.setState({
-            listType: listType,
             loaded: true
         })
     }
@@ -112,6 +107,11 @@ class CreateEditListScreen extends Component {
     listItemSubmitHandler = () => {
         const listItems = this.state.listItems
         const newItem = this.state.listItemName
+        if (newItem === '') {
+            // this.validationAlert('Error!', "List Item Can't be empty")
+
+            return
+        }
         if (this.state.mode === 'edit') {
             const db = this.state.db
             console.log(newItem)
@@ -183,6 +183,15 @@ class CreateEditListScreen extends Component {
     addPropertyHandler = () => {
 
         const listProperties = this.state.listProperties
+        for (var i = 0; i < listProperties.length; i++) {
+            if (listProperties[i].propertyName === '') {
+                return
+            }
+            if (listProperties[i].info === '') {
+                return
+            }
+        }
+        // return
         const newProperty = {
             propertyName: '',
             importance: 20,
@@ -212,12 +221,49 @@ class CreateEditListScreen extends Component {
         })
     }
 
-    propertyDeleteHandler = (index) => {
+    propertyDeleteHandler = async (index) => {
         const listProperties = this.state.listProperties
-        listProperties.splice(index, 1)
-        this.setState({
-            listProperties: listProperties
-        })
+        Alert.alert(
+            'Delete this property?',
+            listProperties[index].propertyName,
+            [
+                {
+                    text: "Cancel",
+                    onPress: () => confirm = false,
+                    style: "cancel"
+                },
+                {
+                    text: "OK", onPress: async () => {
+                        if (typeof listProperties[index].id === 'number') {
+                            const propertyRes = await deleteProperty(listProperties[index].id)
+                            console.log(propertyRes)
+                        }
+                        listProperties.splice(index, 1)
+                        this.setState({
+                            listProperties: listProperties
+                        })
+                    }
+                }
+            ],
+            { cancelable: true }
+        );
+    }
+
+    validationAlert = (heading, text) => {
+        Alert.alert(
+            heading,
+            text,
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel"
+                },
+                {
+                    text: "OK"
+                }
+            ],
+            { cancelable: true }
+        );
     }
 
     submitHandler = async () => {
@@ -229,8 +275,36 @@ class CreateEditListScreen extends Component {
         const db = SQLite.openDatabase('SelectSwitch.db')
         const listItemIDs = []
         const listPropertyIDs = []
+
+        //Validations
+        if (listName === '') {
+            this.validationAlert('Error!', "List Name Can't be blank")
+            return
+        }
+
+        if (listProperties.length === 0) {
+            this.validationAlert('Error!', "Properties Can't be empty")
+            return
+        }
+        for (var i = 0; i < listProperties.length; i++) {
+            if (listProperties[i].propertyName === '') {
+                this.validationAlert('Error!', "Property Name Can't be blank")
+                return
+            }
+            if (listProperties[i].info === '') {
+                this.validationAlert('Error!', "Property Info Can't be blank")
+                return
+            }
+        }
+
+        if (listItems.length === 0) {
+            this.validationAlert('Error!', "List Items Can't be empty")
+            return
+        }
+        //Validations End
+
         if (this.state.mode === 'create') {
-            console.log("Starting Process")
+
             const listRes = await createList(listName, listType, true, true)
             const listID = listRes.insertId
             for (var i = 0; i < listItems.length; i++) {
@@ -266,6 +340,30 @@ class CreateEditListScreen extends Component {
         }
         else {
             await updateList(listName, this.state.listID)
+            if (this.state.listType === 'logical') {
+                for (var i = 0; i < listProperties.length; i++) {
+                    if (typeof listProperties[i].id === "number") {
+                        const propertyRes = await updateProperty(
+                            listProperties[i].propertyName,
+                            listProperties[i].importance,
+                            listProperties[i].info,
+                            listProperties[i].negative ? 1 : 0,
+                            listProperties[i].id
+                        )
+                    } else {
+                        const propertyRes = await createProperty(this.state.listID,
+                            listProperties[i].propertyName,
+                            listProperties[i].importance,
+                            listProperties[i].info,
+                            listProperties[i].negative ? 1 : 0
+                        )
+                        for (var j = 0; j < listItems.length; j++) {
+                            await createListItemProperty(listItems[i].id, propertyRes.insertId, this.state.listID, 100)
+                        }
+                    }
+
+                }
+            }
             this.props.navigation.pop()
             this.props.navigation.pop()
             this.props.navigation.navigate({
@@ -287,7 +385,7 @@ class CreateEditListScreen extends Component {
             this.state.loaded
                 ?
                 <ScrollView style={styles.container} keyboardShouldPersistTaps='handled'>
-                    <TextInput placeholder={"List Name"} placeholderTextColor='#ffffff' style={styles.listNameInput} onChangeText={this.listNameValueHandler} value={this.state.listName} />
+                    <TextInput placeholder={"List Name"} placeholderTextColor='#2f2f2f' style={styles.listNameInput} onChangeText={this.listNameValueHandler} value={this.state.listName} />
 
                     {this.state.listType === 'logical'
                         ?
@@ -295,11 +393,12 @@ class CreateEditListScreen extends Component {
                             <Text style={globalStyles.heading}>Properties</Text>
 
                             {this.state.listProperties.map((item, index) => {
+                                // console.log(item)
                                 return (
                                     <View style={{ marginTop: 20, marginBottom: 40 }, { ...globalStyles.card }} key={item.id}>
                                         <View style={{ flexDirection: 'row' }}>
                                             <TextInput placeholder="Camera"
-                                                placeholderTextColor='#fff'
+                                                placeholderTextColor='#707070'
                                                 style={styles.textInput}
                                                 value={this.state.listProperties[index].propertyName}
                                                 onChangeText={this.propertyNameChangeHandler.bind(this, index)}
@@ -309,8 +408,8 @@ class CreateEditListScreen extends Component {
                                             </TouchableOpacity>
                                         </View>
                                         <View style={{ flexDirection: 'row' }}>
-                                            <TextInput placeholder="Property Info"
-                                                placeholderTextColor='#fff'
+                                            <TextInput placeholder="Info"
+                                                placeholderTextColor='#707070'
                                                 style={styles.textInput}
                                                 value={this.state.listProperties[index].info}
                                                 onChangeText={this.propertyInfoChangeHandler.bind(this, index)}
@@ -336,7 +435,7 @@ class CreateEditListScreen extends Component {
                                         <View style={{ flex: 1, flexDirection: 'row' }}>
                                             <Text style={styles.sliderText}>Negative Value</Text>
                                             <Checkbox
-                                                value={this.state.listProperties[index].negative}
+                                                value={item.negative === 0 ? false : true}
                                                 onValueChange={this.negativeValueToggle.bind(this, index)}
                                                 style={styles.checkbox}
                                                 tintColors={{ true: '#FF7043' }}
@@ -356,7 +455,7 @@ class CreateEditListScreen extends Component {
 
 
                     <View style={styles.listItemInputContainer}>
-                        <TextInput placeholder={"List Item"} placeholderTextColor='#ffffff' style={styles.textInput} value={this.state.listItemName} onChangeText={this.listItemNameHandler} />
+                        <TextInput placeholder={"List Item"} placeholderTextColor='#2f2f2f' style={styles.textInput} value={this.state.listItemName} onChangeText={this.listItemNameHandler} />
                         <TouchableOpacity>
                             <AntDesign name="pluscircle" size={30} color="#FF7043" style={styles.plusIcon} onPress={this.listItemSubmitHandler} />
                         </TouchableOpacity>
@@ -487,7 +586,8 @@ const styles = StyleSheet.create({
         textAlignVertical: 'center',
         textAlign: 'right',
         flex: 1,
-        marginRight: Dimensions.get('screen').width < 400 ? 5 : 10
+        marginRight: Dimensions.get('screen').width < 400 ? 5 : 10,
+        marginTop: 10
     },
     currentListDeleteIcon: {
         textAlignVertical: 'center',

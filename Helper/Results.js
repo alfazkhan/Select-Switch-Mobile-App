@@ -36,3 +36,20 @@ export const fetchResult = (listID) => {
     })
     return promise
 }
+
+export const deleteResults = (listID) => {
+    const promise = new Promise((resolve, reject) => {
+        db.transaction((txn) => {
+            txn.executeSql(`DELETE from results where listID=?`,
+                [listID],
+                (_, result) => {
+                    resolve(result)
+                },
+                (_, err) => {
+                    reject(err)
+                }
+            )
+        })
+    })
+    return promise
+}

@@ -11,15 +11,16 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as SQLite from 'expo-sqlite';
 import { connect } from 'react-redux'
 import { deleteAllListItem, fetchListItems } from '../Helper/ListItems';
-import { fetchListItemProperty } from '../Helper/listItemProperty';
-import { fetchProperties } from '../Helper/Properties';
-import { createResult, fetchResult } from '../Helper/Results';
+import { deleteAllListItemProperties, fetchListItemProperty } from '../Helper/listItemProperty';
+import { deleteListProperties, fetchProperties } from '../Helper/Properties';
+import { createResult, fetchResult, deleteResults } from '../Helper/Results';
 
 import {
     AdMobBanner,
 
     setTestDeviceIDAsync,
 } from 'expo-ads-admob';
+import { deleteList } from '../Helper/Lists';
 setTestDeviceIDAsync('EMULATOR');
 
 
@@ -429,7 +430,8 @@ ResultScreen.navigationOptions = (navData) => {
                         navData.navigation.navigate({
                             routeName: 'CreateEdit', params: {
                                 listID: listID,
-                                mode: 'edit'
+                                mode: 'edit',
+                                listType: listType
                             }
                         })
                     }
@@ -447,27 +449,28 @@ ResultScreen.navigationOptions = (navData) => {
                                 { text: 'Cancel' },
                                 {
                                     text: 'Yes',
-                                    onPress: () => {
-                                        const db = SQLite.openDatabase('SelectSwitch.db')
-                                        db.transaction((txn) => {
-                                            txn.executeSql(`DELETE FROM lists where id=?`,
-                                                [listID],
-                                                (_, result) => {
-                                                    deleteAllListItem(listID)
-                                                    console.log(result)
-                                                    navData.navigation.pop()
-                                                    navData.navigation.popToTop()
-                                                    navData.navigation.navigate({
-                                                        routeName: 'SelectList', params: {
-                                                            listType: listType
-                                                        }
-                                                    })
+                                    onPress: async () => {
+                                        // return
+                                        await deleteList(listID)
 
-                                                },
-                                                (_, err) => {
-                                                    console.log(err)
-                                                }
-                                            )
+                                        await deleteResults(listID)
+                                        await deleteAllListItem(listID)
+
+                                        if (listType === 'logical') {
+                                                await deleteAllListItemProperties(listID)
+                                                await deleteListProperties(listID)
+                                        }
+                                        navData.navigation.popToTop({
+                                            params: {
+                                                listType: listType
+                                            }
+                                        })
+                                        console.log(navData.navigation.getParam('listType'))
+                                        navData.navigation.navigate({
+                                            routeName: 'SelectList',
+                                            params: {
+                                                listType: listType
+                                            }
                                         })
 
                                     }

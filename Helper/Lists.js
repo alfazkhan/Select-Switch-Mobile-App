@@ -10,11 +10,9 @@ export const createList = (listName, listType, repeatResults, storeResults) => {
                 [listName, listType, repeatResults, storeResults],
                 (_, result) => {
                     resolve(result)
-                    // console.log('Data Inserted')
                 },
                 (_, err) => {
                     reject(err)
-                    console.log(err)
                 }
             )
         })
@@ -29,11 +27,43 @@ export const updateList = (listName, id) => {
                 [listName, id],
                 (_, result) => {
                     resolve(result)
-                    console.log('Data Inserted')
                 },
                 (_, err) => {
                     reject(err)
-                    console.log(err)
+                }
+            )
+        })
+    })
+    return promise
+}
+
+export const fetchList = (id) => {
+    const promise = new Promise((resolve, reject) => {
+        db.transaction((txn) => {
+            txn.executeSql(`SELECT * from lists where id=?`,
+                [id],
+                (_, result) => {
+                    resolve(result)
+                },
+                (_, err) => {
+                    reject(err)
+                }
+            )
+        })
+    })
+    return promise
+}
+
+export const deleteList = (id) => {
+    const promise = new Promise((resolve, reject) => {
+        db.transaction((txn) => {
+            txn.executeSql(`DELETE from lists where id=?`,
+                [id],
+                (_, result) => {
+                    resolve(result)
+                },
+                (_, err) => {
+                    reject(err)
                 }
             )
         })

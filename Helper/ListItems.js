@@ -64,12 +64,11 @@ export const deleteAllListItem = (listID) => {
             txn.executeSql(`DELETE FROM listItems where listID=?`,
                 [listID],
                 (_, result) => {
-
-                    console.log(result)
+                    resolve(result)
 
                 },
                 (_, err) => {
-                    console.log(err)
+                    reject(err)
                 }
             )
         })
