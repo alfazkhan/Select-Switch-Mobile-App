@@ -90,7 +90,7 @@ class CreateEditListScreen extends Component {
     negativeValueToggle = (index) => {
         console.log(index)
         const listProperties = this.state.listProperties
-        listProperties[index].negative = !listProperties[index].negative ? 1 : 0
+        listProperties[index].negative = listProperties[index].negative === 0 ? 1 : 0
         this.setState({
             listProperties: listProperties
         })
@@ -237,10 +237,30 @@ class CreateEditListScreen extends Component {
     }
 
     infoAlertHandler = (type) => {
-        // if(type = )
+        let text,desc
+        if(type === "importance" ){
+            text = "About Factor"
+            desc="How important is this property, more the importance more the priority"
+        }else if(type === "negative"){
+            console.log(type)
+            text = "About Factor"
+            desc="Decides if this a negative property, if set to negative more the importance less the priority"
+        }
+        Alert.alert(
+            text,
+            desc,
+            [
+                {
+                    text: "OK",
+                    style: "cancel"
+                },
+            ],
+            { cancelable: true }
+        );
     }
 
     validationAlert = (heading, text) => {
+        console.log(heading,text)
         Alert.alert(
             heading,
             text,
@@ -445,7 +465,7 @@ class CreateEditListScreen extends Component {
                                             </View> */}
                                             <View style={styles.importanceInput}>
                                                 <Text style={styles.sliderText}>Importance</Text>
-                                                <AntDesign name="infocirlce" size={16} color="white" onPress={() => console.log("Info")} style={{ textAlignVertical: 'center' }} />
+                                                <AntDesign name="infocirlce" size={16} color="white" onPress={() => this.infoAlertHandler("importance")} style={{ textAlignVertical: 'center' }} />
                                                 <Slider
                                                     style={{ height: 55, flex: 4, width: 100 }}
                                                     minimumValue={0}
@@ -462,7 +482,7 @@ class CreateEditListScreen extends Component {
                                             </View>
                                             <View style={{ flex: 1, flexDirection: 'row', paddingBottom: 20 }}>
                                                 <Text style={styles.sliderText}>Negative Value</Text>
-                                                <AntDesign name="infocirlce" size={16} color="white" onPress={() => console.log("Info")} style={{ textAlignVertical: 'center', flex: 2.8 }} />
+                                                <AntDesign name="infocirlce" size={16} color="white" onPress={() => this.infoAlertHandler("negative")} style={{ textAlignVertical: 'center', flex: 2.8 }} />
                                                 <Checkbox
                                                     value={item.negative === 0 ? false : true}
                                                     onValueChange={this.negativeValueToggle.bind(this, index)}
