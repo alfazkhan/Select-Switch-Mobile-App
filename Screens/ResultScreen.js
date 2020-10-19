@@ -378,7 +378,7 @@ class ResultScreen extends Component {
                     <View style={{ width: Dimensions.get('window').width }}>
                         <AdMobBanner
                             bannerSize="fullBanner"
-                            adUnitID="ca-app-pub-3940256099942544/6300978111" // Test ID, Replace with your-admob-unit-id
+                            adUnitID="ca-app-pub-6467321076216101/8261641007" // Test ID, Replace with your-admob-unit-id
                             servePersonalizedAds // true or false
                             onDidFailToReceiveAdWithError={this.bannerError}
                             style={{ width: Dimensions.get('window').width }}
