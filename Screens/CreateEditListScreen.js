@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { Text, View, StyleSheet, Button, Dimensions, Alert } from 'react-native'
+import { Text, View, StyleSheet, Button, Dimensions, Alert, KeyboardAvoidingView } from 'react-native'
 import { ScrollView, TextInput, TouchableOpacity } from 'react-native-gesture-handler'
 import { AntDesign } from '@expo/vector-icons';
 import { FontAwesome } from '@expo/vector-icons';
@@ -12,8 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { createListItem, deleteListItem, fetchListItems, updateListItem } from '../Helper/ListItems';
 import * as SQLite from 'expo-sqlite';
 import { createList, fetchList, updateList } from '../Helper/Lists';
-import { createProperty, fetchProperties, updateProperty, deleteProperty } from '../Helper/Properties';
-import { createListItemProperty } from '../Helper/listItemProperty';
+import { createProperty, fetchProperties, updateProperty, deleteProperty, deleteListProperties } from '../Helper/Properties';
+import { createListItemProperty, deleteAllListItemProperties, deleteAllListItemPropertiesbyItemID, deleteAllListItemPropertiesbyPropertyID } from '../Helper/listItemProperty';
 import CustomButton from '../Components/CustomButton';
 
 
@@ -29,11 +29,14 @@ class CreateEditListScreen extends Component {
         sliderValueVisible: false,
         db: SQLite.openDatabase('SelectSwitch.db'),
         listID: this.props.navigation.getParam('listID'),
-        loaded: false
+        loaded: false,
+        deletedListItems: [],
+        deletedListProperties: []
     }
 
 
     componentDidMount = async () => {
+        // console.log(Dimensions.get('screen').width)
         if (this.state.mode === 'edit') {
             const db = this.state.db
 
@@ -73,6 +76,7 @@ class CreateEditListScreen extends Component {
         this.setState({
             loaded: true
         })
+        // this.addPropertyHandler()
     }
 
     sliderValueHandler = (event, index) => {
@@ -84,8 +88,9 @@ class CreateEditListScreen extends Component {
     }
 
     negativeValueToggle = (index) => {
+        console.log(index)
         const listProperties = this.state.listProperties
-        listProperties[index].negative = !listProperties[index].negative
+        listProperties[index].negative = !listProperties[index].negative ? 1 : 0
         this.setState({
             listProperties: listProperties
         })
@@ -104,46 +109,25 @@ class CreateEditListScreen extends Component {
         })
     }
 
-    listItemSubmitHandler = () => {
+    listItemSubmitHandler = async () => {
         const listItems = this.state.listItems
         const newItem = this.state.listItemName
+        // const list
         if (newItem === '') {
             // this.validationAlert('Error!', "List Item Can't be empty")
 
             return
         }
-        if (this.state.mode === 'edit') {
-            const db = this.state.db
-            console.log(newItem)
-            db.transaction((txn) => {
-                txn.executeSql(`INSERT INTO listItems (listID,itemName) VALUES(?,?)`,
-                    [this.state.listID, newItem],
-                    (_, result) => {
-                        listItems.push({
-                            itemName: newItem,
-                            id: result.insertId
-                        })
-                        console.log(result)
-                        this.setState({
-                            listItems: listItems,
-                            listItemName: ''
-                        })
-                    },
-                    (_, err) => {
-                        console.log(err)
-                    }
-                )
-            })
-        } else {
-            listItems.push({
-                itemName: newItem,
-                id: new Date()
-            })
-            this.setState({
-                listItems: listItems,
-                listItemName: ''
-            })
-        }
+
+        listItems.push({
+            itemName: newItem,
+            id: new Date()
+        })
+        this.setState({
+            listItems: listItems,
+            listItemName: ''
+        })
+
 
     }
 
@@ -166,9 +150,13 @@ class CreateEditListScreen extends Component {
                 },
                 {
                     text: "OK", onPress: async () => {
-
-                        const res = await deleteListItem(listItems[index].id)
-                        console.log(res)
+                        if (typeof listItems[index].id === 'number') {
+                            const deletedListItems = this.state.deletedListItems
+                            deletedListItems.push(listItems[index].id)
+                            this.setState({
+                                deletedListItems: deletedListItems
+                            })
+                        }
                         listItems.splice(index, 1)
                         this.setState({
                             listItems: listItems
@@ -181,13 +169,9 @@ class CreateEditListScreen extends Component {
     }
 
     addPropertyHandler = () => {
-
         const listProperties = this.state.listProperties
         for (var i = 0; i < listProperties.length; i++) {
             if (listProperties[i].propertyName === '') {
-                return
-            }
-            if (listProperties[i].info === '') {
                 return
             }
         }
@@ -235,8 +219,11 @@ class CreateEditListScreen extends Component {
                 {
                     text: "OK", onPress: async () => {
                         if (typeof listProperties[index].id === 'number') {
-                            const propertyRes = await deleteProperty(listProperties[index].id)
-                            console.log(propertyRes)
+                            const deletedListProperties = this.state.deletedListProperties
+                            deletedListProperties.push(listProperties[index].id)
+                            this.setState({
+                                deletedListProperties: deletedListProperties
+                            })
                         }
                         listProperties.splice(index, 1)
                         this.setState({
@@ -247,6 +234,10 @@ class CreateEditListScreen extends Component {
             ],
             { cancelable: true }
         );
+    }
+
+    infoAlertHandler = (type) => {
+        // if(type = )
     }
 
     validationAlert = (heading, text) => {
@@ -273,8 +264,8 @@ class CreateEditListScreen extends Component {
         const listProperties = this.state.listProperties
         const listType = this.state.listType
         const db = SQLite.openDatabase('SelectSwitch.db')
-        const listItemIDs = []
-        const listPropertyIDs = []
+        const deletedListItems = this.state.deletedListItems
+        const deletedListProperties = this.state.deletedListProperties
 
         //Validations
         if (listName === '') {
@@ -293,10 +284,6 @@ class CreateEditListScreen extends Component {
                     this.validationAlert('Error!', "Property Name Can't be blank")
                     return
                 }
-                if (listProperties[i].info === '') {
-                    this.validationAlert('Error!', "Property Info Can't be blank")
-                    return
-                }
             }
         }
 
@@ -311,28 +298,31 @@ class CreateEditListScreen extends Component {
 
             const listRes = await createList(listName, listType, true, true)
             const listID = listRes.insertId
+            // console.log(listItems,listProperties)
             for (var i = 0; i < listItems.length; i++) {
                 const itemRes = await createListItem(listID, listItems[i].itemName)
-                listItemIDs.push(itemRes.insertId)
+                listItems[i].id = itemRes.insertId
             }
+            // return
             if (this.state.listType === 'logical') {
                 for (var i = 0; i < listProperties.length; i++) {
-                    // console.log(listProperties[i])
                     const propertyRes = await createProperty(listID,
                         listProperties[i].propertyName,
                         listProperties[i].importance,
                         listProperties[i].info,
                         listProperties[i].negative ? 1 : 0
                     )
-                    listPropertyIDs.push(propertyRes.insertId)
+                    listProperties[i].id = propertyRes.insertId
                 }
             }
-            console.log(listID)
-            for (var i = 0; i < listItemIDs.length; i++) {
-                for (var j = 0; j < listPropertyIDs.length; j++) {
-                    await createListItemProperty(listItemIDs[i], listPropertyIDs[j], listID, 100)
+            // console.log(listItems,listProperties)
+            for (var i = 0; i < listItems.length; i++) {
+                for (var j = 0; j < listProperties.length; j++) {
+                    const res = await createListItemProperty(listItems[i].id, listProperties[j].id, listID, 100)
+                    console.log(res)
                 }
             }
+            // return
             this.props.navigation.pop()
             this.props.navigation.pop()
             this.props.navigation.navigate({
@@ -344,7 +334,22 @@ class CreateEditListScreen extends Component {
         }
         else {
             await updateList(listName, this.state.listID)
+            for (var i = 0; i < deletedListItems.length; i++) {
+                await deleteListItem(deletedListItems[i])
+                await deleteAllListItemPropertiesbyItemID(deletedListItems[i])
+            }
+            for (var i = 0; i < listItems.length; i++) {
+                if (typeof listItems[i].id !== "number") {
+                    const itemRes = await createListItem(this.state.listID, listItems[i].itemName)
+                    // listItems[i].id = itemRes.insertId
+                }
+            }
             if (this.state.listType === 'logical') {
+                for (var i = 0; i < deletedListProperties.length; i++) {
+                    const delRes = await deleteProperty(deletedListProperties[i])
+                    // console.log(delRes)
+                    await deleteAllListItemPropertiesbyPropertyID(deletedListProperties[i])
+                }
                 for (var i = 0; i < listProperties.length; i++) {
                     if (typeof listProperties[i].id === "number") {
                         const propertyRes = await updateProperty(
@@ -361,13 +366,19 @@ class CreateEditListScreen extends Component {
                             listProperties[i].info,
                             listProperties[i].negative ? 1 : 0
                         )
-                        for (var j = 0; j < listItems.length; j++) {
-                            await createListItemProperty(listItems[i].id, propertyRes.insertId, this.state.listID, 100)
-                        }
+                        listProperties[i].id = propertyRes.insertId
                     }
+                }
 
+                const delRes = await deleteAllListItemProperties(this.state.listID)
+                // this.changeRoute()
+                for (var i = 0; i < listItems.length; i++) {
+                    for (var j = 0; j < listProperties.length; j++) {
+                        const res = await createListItemProperty(listItems[i].id, listProperties[j].id, this.state.listID, 100)
+                    }
                 }
             }
+
             this.props.navigation.pop()
             this.props.navigation.pop()
             this.props.navigation.navigate({
@@ -382,124 +393,139 @@ class CreateEditListScreen extends Component {
 
 
     }
+    changeRoute = () => {
+        this.props.navigation.pop()
+        this.props.navigation.pop()
+        console.log("delRes")
+        this.props.navigation.navigate({
+            routeName: 'Result', params: {
+                listName: this.state.listName,
+                listType: this.state.listType,
+                id: this.state.listID,
+            }
+        })
+    }
 
 
     render() {
         return (
             this.state.loaded
                 ?
-                <ScrollView style={styles.container} keyboardShouldPersistTaps='handled'>
-                    <TextInput placeholder={"List Name"} placeholderTextColor='#2f2f2f' style={styles.listNameInput} onChangeText={this.listNameValueHandler} value={this.state.listName} />
+                <View style={styles.container}>
+                    <ScrollView keyboardShouldPersistTaps='handled'>
+                        <TextInput placeholder={"List Name"} placeholderTextColor='#2f2f2f' style={styles.listNameInput} onChangeText={this.listNameValueHandler} value={this.state.listName} />
 
-                    {this.state.listType === 'logical'
-                        ?
-                        <View>
-                            <Text style={globalStyles.heading}>Properties</Text>
+                        {this.state.listType === 'logical'
+                            ?
+                            <View>
+                                <Text style={globalStyles.heading}>Properties</Text>
 
-                            {this.state.listProperties.map((item, index) => {
-                                // console.log(item)
-                                return (
-                                    <View style={{ marginTop: 20, marginBottom: 40 }, { ...globalStyles.card }} key={item.id}>
-                                        <View style={{ flexDirection: 'row' }}>
-                                            <TextInput placeholder="Camera"
-                                                placeholderTextColor='#707070'
-                                                style={styles.textInput}
-                                                value={this.state.listProperties[index].propertyName}
-                                                onChangeText={this.propertyNameChangeHandler.bind(this, index)}
-                                            />
-                                            <TouchableOpacity>
-                                                <MaterialIcons name="delete" size={30} style={styles.propertyDeleteIcon} color={Colors.red} onPress={() => this.propertyDeleteHandler(index)} />
-                                            </TouchableOpacity>
-                                        </View>
-                                        <View style={{ flexDirection: 'row' }}>
-                                            <TextInput placeholder="Info"
+                                {this.state.listProperties.map((item, index) => {
+                                    // console.log(item)
+                                    return (
+                                        <View style={{ marginTop: 20, marginBottom: 40 }, { ...globalStyles.card }} key={item.id}>
+                                            <View style={{ flexDirection: 'row', flex: 1 }}>
+                                                <TextInput placeholder="Camera"
+                                                    placeholderTextColor='#707070'
+                                                    style={styles.textInput}
+                                                    value={this.state.listProperties[index].propertyName}
+                                                    onChangeText={this.propertyNameChangeHandler.bind(this, index)}
+                                                />
+                                                <TouchableOpacity style={styles.propertyDeleteIcon}>
+                                                    <MaterialIcons name="delete" size={30} color={Colors.red} onPress={() => this.propertyDeleteHandler(index)} />
+                                                </TouchableOpacity>
+                                            </View>
+                                            {/* <View style={{ flexDirection: 'row' }}>
+                                                <TextInput placeholder="Info"
                                                 placeholderTextColor='#707070'
                                                 style={styles.textInput}
                                                 value={this.state.listProperties[index].info}
                                                 onChangeText={this.propertyInfoChangeHandler.bind(this, index)}
-                                            />
+                                                />
+                                            </View> */}
+                                            <View style={styles.importanceInput}>
+                                                <Text style={styles.sliderText}>Importance</Text>
+                                                <AntDesign name="infocirlce" size={16} color="white" onPress={() => console.log("Info")} style={{ textAlignVertical: 'center' }} />
+                                                <Slider
+                                                    style={{ height: 55, flex: 4, width: 100 }}
+                                                    minimumValue={0}
+                                                    maximumValue={100}
+                                                    minimumTrackTintColor={Colors.orange}
+                                                    maximumTrackTintColor="#333"
+                                                    thumbTintColor={Colors.orange}
+                                                    onValueChange={(event) => this.sliderValueHandler(event, index)}
+                                                    value={this.state.listProperties[index].importance}
+                                                    onSlidingStart={() => this.setState({ sliderValueVisible: true })}
+                                                    onSlidingComplete={() => this.setState({ sliderValueVisible: false })}
+                                                />
+                                                <Text style={styles.sliderValue}>{this.state.sliderValueVisible ? this.state.listProperties[index].importance : null}</Text>
+                                            </View>
+                                            <View style={{ flex: 1, flexDirection: 'row', paddingBottom: 20 }}>
+                                                <Text style={styles.sliderText}>Negative Value</Text>
+                                                <AntDesign name="infocirlce" size={16} color="white" onPress={() => console.log("Info")} style={{ textAlignVertical: 'center', flex: 2.8 }} />
+                                                <Checkbox
+                                                    value={item.negative === 0 ? false : true}
+                                                    onValueChange={this.negativeValueToggle.bind(this, index)}
+                                                    style={styles.checkbox}
+                                                    tintColors={{ true: '#FF7043' }}
+                                                />
+                                            </View>
                                         </View>
-                                        <View style={styles.importanceInput}>
-                                            <Text style={styles.sliderText}>Importance</Text>
+                                    )
+                                })}
 
-                                            <Slider
-                                                style={{ height: 55, flex: 4, width: 100 }}
-                                                minimumValue={0}
-                                                maximumValue={100}
-                                                minimumTrackTintColor={Colors.orange}
-                                                maximumTrackTintColor="#333"
-                                                thumbTintColor={Colors.orange}
-                                                onValueChange={(event) => this.sliderValueHandler(event, index)}
-                                                value={this.state.listProperties[index].importance}
-                                                onSlidingStart={() => this.setState({ sliderValueVisible: true })}
-                                                onSlidingComplete={() => this.setState({ sliderValueVisible: false })}
-                                            />
-                                            <Text style={styles.sliderValue}>{this.state.sliderValueVisible ? this.state.listProperties[index].importance : null}</Text>
-                                        </View>
-                                        <View style={{ flex: 1, flexDirection: 'row' }}>
-                                            <Text style={styles.sliderText}>Negative Value</Text>
-                                            <Checkbox
-                                                value={item.negative === 0 ? false : true}
-                                                onValueChange={this.negativeValueToggle.bind(this, index)}
-                                                style={styles.checkbox}
-                                                tintColors={{ true: '#FF7043' }}
-                                            />
-                                        </View>
-                                    </View>
-                                )
-                            })}
+                                <TouchableOpacity>
+                                    <AntDesign name="pluscircle" size={30} color="#FF7043" style={{ textAlign: 'center', marginVertical: 10 }} onPress={this.addPropertyHandler} />
+                                </TouchableOpacity>
+                            </View>
 
+
+                            : null}
+
+
+                        <View style={styles.listItemInputContainer}>
+                            <TextInput placeholder={"List Item"} placeholderTextColor='#2f2f2f' style={styles.textInput} value={this.state.listItemName} onChangeText={this.listItemNameHandler} />
                             <TouchableOpacity>
-                                <AntDesign name="pluscircle" size={30} color="#FF7043" style={{ textAlign: 'center', marginVertical: 10 }} onPress={this.addPropertyHandler} />
+                                <AntDesign name="pluscircle" size={30} color="#FF7043" style={styles.plusIcon} onPress={this.listItemSubmitHandler} />
                             </TouchableOpacity>
                         </View>
 
-
-                        : null}
-
-
-                    <View style={styles.listItemInputContainer}>
-                        <TextInput placeholder={"List Item"} placeholderTextColor='#2f2f2f' style={styles.textInput} value={this.state.listItemName} onChangeText={this.listItemNameHandler} />
-                        <TouchableOpacity>
-                            <AntDesign name="pluscircle" size={30} color="#FF7043" style={styles.plusIcon} onPress={this.listItemSubmitHandler} />
-                        </TouchableOpacity>
-                    </View>
-
-                    <View style={globalStyles.card}>
-                        {this.state.listItems.length > 0
-                            ?
-                            <Text style={globalStyles.heading}>Current List</Text>
-                            : null}
-                        {this.state.listItems.map(item => {
-                            return (
-                                <View style={styles.currentListItem} key={item.id}>
-                                    <FontAwesome name="circle" size={10} color="white" style={{ textAlignVertical: 'center' }} />
-                                    <Text style={styles.currentListText}>{item.itemName}</Text>
-                                    <MaterialIcons name="delete" size={22} style={styles.currentListDeleteIcon} color={Colors.red} onPress={() => this.listItemDeleteHandler(item.id)} />
-                                </View>
-                            )
-                        })}
-                    </View>
-                    <View style={styles.root}>
-
-                        <CustomButton text="Save"
-                            Press={() => {
-                                this.submitHandler()
-                            }}
-                            height={40}
-                            width={Dimensions.get('screen').width / 2}
-                            style={{ marginVertical: 10, marginTop: 20 }}
-                        />
-                        <CustomButton text="Cancel"
-                            Press={() => {
-                                this.props.navigation.goBack()
-                            }}
-                            height={40}
-                            width={Dimensions.get('screen').width / 2}
-                        />
-
-                    </View>
-                </ScrollView>
+                        <View style={globalStyles.card} >
+                            {this.state.listItems.length > 0
+                                ?
+                                <Text style={globalStyles.heading}>Current List</Text>
+                                : null}
+                            {this.state.listItems.map(item => {
+                                return (
+                                    <View style={styles.currentListItem} key={item.id}>
+                                        <FontAwesome name="circle" size={10} color="white" style={{ textAlignVertical: 'center' }} />
+                                        <Text style={styles.currentListText}>{item.itemName}</Text>
+                                        <MaterialIcons name="delete" size={22} style={styles.currentListDeleteIcon} color={Colors.red} onPress={() => this.listItemDeleteHandler(item.id)} />
+                                    </View>
+                                )
+                            })}
+                        </View>
+                        <View style={{marginTop:20}}>
+                            <CustomButton text="Save"
+                                Press={() => {
+                                    this.submitHandler()
+                                }}
+                                marginVertical={10}
+                                style={{ marginTop: 20, flex: 1, justifyContent: 'center' }}
+                                marginHorizontal={Dimensions.get('screen').width < 350 ? 10 : 20}
+                            />
+                            <CustomButton text="Cancel"
+                                Press={() => {
+                                    this.props.navigation.goBack()
+                                }}
+                                style={{ marginTop: 20, flex: 1, justifyContent: 'center' }}
+                                marginHorizontal={Dimensions.get('screen').width < 350 ? 10 : 20}
+                            />
+                        </View>
+                    </ScrollView>
+                    {/* <KeyboardAvoidingView> */}
+                    {/* </KeyboardAvoidingView> */}
+                </View>
                 : null
         )
     }
@@ -540,8 +566,8 @@ const styles = StyleSheet.create({
     listNameInput: {
         color: 'white',
         fontSize: 20,
-        marginTop: 50,
-        marginHorizontal: Dimensions.get('screen').width < 400 ? 10 : 20,
+        marginTop: Dimensions.get('screen').width < 350 ? 10 : 40,
+        marginHorizontal: Dimensions.get('screen').width < 350 ? 10 : 20,
         borderBottomColor: 'grey',
         borderBottomWidth: 1,
         paddingBottom: 10
@@ -550,11 +576,12 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 20,
         marginTop: 10,
-        marginHorizontal: Dimensions.get('screen').width < 400 ? 10 : 20,
+        marginHorizontal: Dimensions.get('screen').width < 350 ? 10 : 20,
         borderBottomColor: 'grey',
         borderBottomWidth: 1,
         paddingBottom: 10,
-        width: Dimensions.get('screen').width < 400 ? 240 : 300
+        width: Dimensions.get('screen').width < 350 ? 250 : 310,
+        flex: 3
     },
     listItemInputContainer: {
         flexDirection: 'row',
@@ -565,7 +592,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         alignContent: 'center',
         marginTop: 20,
-        marginRight: Dimensions.get('screen').width < 400 ? 10 : 20,
+        marginRight: Dimensions.get('screen').width < 350 ? 10 : 20,
 
     },
     currentListItem: {
@@ -587,43 +614,42 @@ const styles = StyleSheet.create({
         display: 'flex'
     },
     propertyDeleteIcon: {
-        textAlignVertical: 'center',
-        textAlign: 'right',
-        flex: 1,
-        marginRight: Dimensions.get('screen').width < 400 ? 5 : 10,
-        marginTop: 10
+        marginTop: 10,
+        marginRight: Dimensions.get('screen').width < 350 ? 5 : 10,
     },
     currentListDeleteIcon: {
         textAlignVertical: 'center',
         textAlign: 'right',
         flex: 1,
-        paddingRight: Dimensions.get('screen').width < 400 ? 5 : 15
+        marginRight: Dimensions.get('screen').width < 350 ? 5 : 10,
+        justifyContent: 'center'
     },
     sliderText: {
         color: '#fff',
         fontSize: 20,
         textAlignVertical: 'center',
-        marginLeft: Dimensions.get('screen').width < 400 ? 10 : 20,
-        flex: 3
+        marginLeft: Dimensions.get('screen').width < 350 ? 10 : 20,
+        flex: 2.3,
+        // marginRight: Dimensions.get('screen').width < 350 ? 10 : 20,
     },
     sliderValue: {
         // fontSize: 20,
         color: '#fff',
         textAlignVertical: 'center',
         flex: 1,
-        marginRight: Dimensions.get('screen').width < 400 ? 5 : 15
+        marginRight: Dimensions.get('screen').width < 350 ? 10 : 25
     },
     importanceInput: {
         flexDirection: 'row',
-        width: Dimensions.get('screen').width < 400 ? 320 : 410,
+        width: Dimensions.get('screen').width < 350 ? 320 : 410,
         flex: 1
     },
     checkbox: {
-        marginRight: Dimensions.get('screen').width < 400 ? 5 : 10
+        marginRight: Dimensions.get('screen').width < 350 ? 5 : 10
 
     },
     backIcon: {
-        marginLeft: Dimensions.get('screen').width < 400 ? 10 : 20
+        marginLeft: Dimensions.get('screen').width < 350 ? 10 : 20
     }
 })
 

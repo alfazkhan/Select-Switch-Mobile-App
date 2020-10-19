@@ -20,7 +20,7 @@ import {
 
     setTestDeviceIDAsync,
 } from 'expo-ads-admob';
-import { deleteList } from '../Helper/Lists';
+import { deleteList, fetchList } from '../Helper/Lists';
 setTestDeviceIDAsync('EMULATOR');
 
 
@@ -33,8 +33,8 @@ class ResultScreen extends Component {
         listProperties: [],
         propertyCollpse: [],
         sliderValueVisible: false,
-        storeResults: true,
-        repeatResults: true,
+        storeResults: null,
+        repeatResults: null,
         previousResults: [],
         listID: this.props.navigation.getParam('id'),
         loaded: false,
@@ -46,8 +46,18 @@ class ResultScreen extends Component {
     componentDidMount = async () => {
         //fetchListItems
 
+        let list = await fetchList(this.state.listID)
+        list = list.rows._array[0]
+        this.setState({
+            storeResults: list.storeResults === 1 ? true : false,
+            repeatResults: list.repeatResults === 1 ? true : false
+        })
+        // console.log(list.storeResults)
+        // console.log(list.storeResults === 1 ? true : false)
+
         let listItems = await fetchListItems(this.state.listID)
         listItems = listItems.rows._array
+        // console.log(listItems)
         const propertyCollpse = []
         for (var i = 0; i < listItems.length; i++) {
             propertyCollpse[i] = false
@@ -72,6 +82,7 @@ class ResultScreen extends Component {
             //fetchlistItemproperty
             let result = await fetchListItemProperty(this.state.listID)
             result = result.rows._array
+            
             const itemProperties = this.state.listItemProperties
             for (var i = 0; i < result.length; i++) {
                 const tempArray = []
@@ -85,6 +96,7 @@ class ResultScreen extends Component {
                 itemProperties[result[i].listItemID] = tempArray
 
             }
+            console.log(itemProperties)
             this.setState({
                 listItemProperties: itemProperties
             })
@@ -96,12 +108,10 @@ class ResultScreen extends Component {
             })
         }
 
-        const repeatResults = true
-        const storeResults = true
+
 
         this.setState({
-            repeatResults: repeatResults,
-            storeResults: storeResults,
+
             loaded: true
         })
     }
@@ -190,10 +200,10 @@ class ResultScreen extends Component {
                 previousResults.pop()
             }
             previousResults.unshift(result)
-            createResult(this.state.listID, result)
             this.setState({
                 previousResults: previousResults
             })
+            await createResult(this.state.listID, result)
         }
 
         if (!this.state.repeatResults) {
@@ -231,11 +241,11 @@ class ResultScreen extends Component {
             }
             previousResults.unshift(result)
             createResult(this.state.listID, result)
-            this.setState({
-                previousResults: previousResults,
-                result: result
-            })
         }
+        this.setState({
+            previousResults: previousResults,
+            result: result
+        })
 
     }
 
@@ -248,10 +258,7 @@ class ResultScreen extends Component {
         return maxIndex
     }
 
-    getListItemPropertyValue = (item, prop) => {
-        console.log(item, prop)
-        return 100
-    }
+    
 
     render() {
         const listItems = this.state.currentListItems.map((item, index) => {
@@ -284,7 +291,7 @@ class ResultScreen extends Component {
 
                                 return (
                                     <View style={{ flex: 1, flexDirection: 'row', marginLeft: 20, marginVertical: 10 }} key={prop.id}>
-                                        <Text style={{ color: '#fff', flex: 2, fontSize: 16, marginLeft: Dimensions.get('screen').width < 400 ? 25 : 35 }}>{prop.propertyName}</Text>
+                                        <Text style={{ color: '#fff', flex: 2.5, fontSize: 16, marginLeft: Dimensions.get('screen').width < 400 ? 25 : 35 }}>{prop.propertyName}</Text>
                                         <Slider
                                             style={{ height: 25, width: 50, flex: 5 }}
                                             minimumValue={0}
@@ -301,7 +308,7 @@ class ResultScreen extends Component {
                                             ?
                                             <Text style={{ flex: 1, textAlignVertical: 'center', color: '#fff' }}>{this.state.listItemProperties[item.id][propIndex]}</Text>
                                             :
-                                            <AntDesign name="infocirlce" size={16} color="white" onPress={() => this.infoAlertHandler(index)} style={{ flex: 1, textAlignVertical: 'center' }} />
+                                            <Text style={{ flex: 1, textAlignVertical: 'center', color: '#fff' }}></Text>
                                         }
                                     </View>
                                 )
@@ -346,7 +353,7 @@ class ResultScreen extends Component {
                                 : null}
                             <View>
                                 <View style={{ flexDirection: 'row' }}>
-                                    <Text style={styles.optionsText}>Store Results</Text>
+                                    <Text style={styles.optionsText}>{"Store Results"}</Text>
                                     <Checkbox
                                         style={styles.checkbox}
                                         tintColors={{ true: '#FF7043' }}
@@ -366,18 +373,17 @@ class ResultScreen extends Component {
 
 
                         </View>
-                        <View style={{ width: Dimensions.get('window').width }}>
-                            <AdMobBanner
-                                bannerSize="fullBanner"
-                                adUnitID="ca-app-pub-3940256099942544/6300978111" // Test ID, Replace with your-admob-unit-id
-                                servePersonalizedAds // true or false
-                                onDidFailToReceiveAdWithError={this.bannerError}
-                                style={{ width: Dimensions.get('window').width }}
-                            />
-                        </View>
-
 
                     </ScrollView>
+                    <View style={{ width: Dimensions.get('window').width }}>
+                        <AdMobBanner
+                            bannerSize="fullBanner"
+                            adUnitID="ca-app-pub-3940256099942544/6300978111" // Test ID, Replace with your-admob-unit-id
+                            servePersonalizedAds // true or false
+                            onDidFailToReceiveAdWithError={this.bannerError}
+                            style={{ width: Dimensions.get('window').width }}
+                        />
+                    </View>
                     <View >
                         {this.state.currentListItems.length !== 0
                             ?
@@ -457,8 +463,8 @@ ResultScreen.navigationOptions = (navData) => {
                                         await deleteAllListItem(listID)
 
                                         if (listType === 'logical') {
-                                                await deleteAllListItemProperties(listID)
-                                                await deleteListProperties(listID)
+                                            await deleteAllListItemProperties(listID)
+                                            await deleteListProperties(listID)
                                         }
                                         navData.navigation.popToTop({
                                             params: {
@@ -526,10 +532,11 @@ const styles = StyleSheet.create({
         fontSize: 20,
         textAlignVertical: 'center',
         marginLeft: Dimensions.get('screen').width < 400 ? 10 : 20,
-        flex: 3
+        flex: 3,
     },
     optionsCard: {
         ...globalStyles.card,
+        paddingVertical: 5
     },
     checkbox: {
         marginRight: Dimensions.get('screen').width < 400 ? 5 : 10

@@ -10,11 +10,9 @@ export const createProperty = (listID, propertyName,importance,info,negative) =>
                 [listID, propertyName,importance,info,negative],
                 (_, result) => {
                     resolve(result)
-                    console.log(result)
                 },
                 (_, err) => {
                     reject(err)
-                    console.log(err)
                 }
             )
         })

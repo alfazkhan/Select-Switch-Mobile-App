@@ -5,6 +5,7 @@ import { connect } from 'react-redux'
 import * as SQLite from 'expo-sqlite';
 import { Ionicons } from '@expo/vector-icons';
 import CustomButton from '../Components/CustomButton';
+import { globalStyles } from '../Styles/GlobalStyles';
 
 
 
@@ -43,32 +44,33 @@ class SelectListScreen extends Component {
 
     render() {
         return (
-
-            <ScrollView style={styles.container}>
-                {this.state.lists.map((list) => {
-                    if (list.listType !== this.state.listType) {
-                        return null
-                    }
-                    return (
-                        <TouchableOpacity key={list.id} onPress={() => {
-                            // this.props.navigation.pop()
-                            this.props.navigation.navigate({
-                                routeName: 'Result', params: {
-                                    listName: list.listName,
-                                    listType: this.props.navigation.getParam('listType'),
-                                    id: list.id
-                                }
-                            })
+            <View style={styles.container}>
+                <Text style={globalStyles.heading}>Choose List</Text>
+                <ScrollView >
+                    {this.state.lists.map((list) => {
+                        if (list.listType !== this.state.listType) {
+                            return null
                         }
-                        }>
-                            <View>
-                                <Text style={styles.listItem} key={Math.random()} > {list.listName} </Text>
-                            </View>
-                        </TouchableOpacity>
-                    )
-                })}
+                        return (
+                            <TouchableOpacity key={list.id} onPress={() => {
+                                // this.props.navigation.pop()
+                                this.props.navigation.navigate({
+                                    routeName: 'Result', params: {
+                                        listName: list.listName,
+                                        listType: this.props.navigation.getParam('listType'),
+                                        id: list.id
+                                    }
+                                })
+                            }
+                            }>
+                                <View>
+                                    <Text style={styles.listItem} key={Math.random()} > {list.listName} </Text>
+                                </View>
+                            </TouchableOpacity>
+                        )
+                    })}
 
-                {/* <Button style={styles.button} title="Create New List" onPress={() => {
+                    {/* <Button style={styles.button} title="Create New List" onPress={() => {
                     // this.props.navigation.pop()
                     this.props.navigation.navigate({
                         routeName: 'CreateEdit',
@@ -79,6 +81,7 @@ class SelectListScreen extends Component {
                         }
                     })
                 }} /> */}
+                </ScrollView>
                 <CustomButton text="Create New List"
                     Press={() => {
                         // this.props.navigation.pop()
@@ -91,10 +94,11 @@ class SelectListScreen extends Component {
                             }
                         })
                     }}
-                    height={40}
-                    style={{marginTop: 20}}
+                    style={{ marginTop: 20, flex: 1, justifyContent: 'center' }}
+                    marginHorizontal= {Dimensions.get('screen').width < 400 ? 10 : 20}
+                    // height={Dimensions.get('screen').width < 350 ? 40 :50}
                 />
-            </ScrollView>
+            </View>
 
         )
     }
@@ -104,7 +108,7 @@ SelectListScreen.navigationOptions = (navData) => {
     const title = navData.navigation.getParam('listType')
     // console.log(title)
     return {
-        headerTitle: title === 'random' ? 'Random Selction' : title === 'logical'?  'Logical Selection': 'Error',
+        headerTitle: title === 'random' ? 'Random Selction' : title === 'logical' ? 'Logical Selection' : 'Error',
         headerLeft: () => (
             <View style={styles.backIcon} >
                 <Ionicons name="md-arrow-back" size={24} color="white" onPress={() => {

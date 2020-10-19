@@ -10,11 +10,9 @@ export const createListItemProperty = (listItemID, propertyID,listID, value) => 
                 [listItemID, propertyID,listID, value],
                 (_, result) => {
                     resolve(result)
-                    console.log(result)
                 },
                 (_, err) => {
                     reject(err)
-                    console.log(err)
                 }
             )
         })
@@ -58,7 +56,41 @@ export const deleteAllListItemProperties = (listID) => {
             )
         })
     })
+}
+export const deleteAllListItemPropertiesbyItemID = (listItemID) => {
+    return new Promise((resolve, reject) => {
+        db.transaction((txn) => {
+            txn.executeSql(`DELETE FROM listItemProperty where listItemID=?`,
+                [listItemID],
+                (_, result) => {
+                    resolve(result)
+                    // console.log(result)
 
+                },
+                (_, err) => {
+                    reject(err)
+                    // console.log(err)
+                }
+            )
+        })
+    })
+}
+export const deleteAllListItemPropertiesbyPropertyID = (propertyID) => {
+    return new Promise((resolve, reject) => {
+        db.transaction((txn) => {
+            txn.executeSql(`DELETE FROM listItemProperty where propertyID=?`,
+                [propertyID],
+                (_, result) => {
+                    resolve(result)
+                    // console.log(result)
 
+                },
+                (_, err) => {
+                    reject(err)
+                    // console.log(err)
+                }
+            )
+        })
+    })
 }
 

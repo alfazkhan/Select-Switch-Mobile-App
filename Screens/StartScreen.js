@@ -21,9 +21,9 @@ class StartScreen extends Component {
                                 }
                             })
                         }}
-                        height={40}
-                        width={Dimensions.get('screen').width/2}
-                        style={{marginVertical: 20}}
+                        // height={Dimensions.get('screen').width < 350 ? 40 :50}
+                        width={Dimensions.get('screen').width/1.5}
+                        marginVertical= {10}
                     />
 
                     <CustomButton
@@ -35,9 +35,10 @@ class StartScreen extends Component {
                                 }
                             })
                         }}
-                        height={40}
-                        width={Dimensions.get('screen').width/2}
+                        // height={Dimensions.get('screen').width < 350 ? 40 :50}
+                        width={Dimensions.get('screen').width/1.5}
                     />
+
 
             </View>
         )
@@ -50,9 +51,19 @@ StartScreen.navigationOptions = () => {
 
 const styles = StyleSheet.create({
     button: {
-        color: '#fff',
-        textAlign: 'center'
+        borderWidth: 1,
+        textAlign: 'center',
+        borderColor: 'white',
+        padding: 10,
+        backgroundColor: 'white',
+        borderRadius: 5,
+        
     },
+    buttonText:{
+        color: '#FFD700',
+        fontWeight:'bold'
+    }
+    ,
     root: {
         flex: 1,
         alignItems: 'center',
