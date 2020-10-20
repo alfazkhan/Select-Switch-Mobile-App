@@ -21,7 +21,7 @@ import {
     setTestDeviceIDAsync,
 } from 'expo-ads-admob';
 import { deleteList, fetchList } from '../Helper/Lists';
-setTestDeviceIDAsync('EMULATOR');
+// setTestDeviceIDAsync('EMULATOR');
 
 
 class ResultScreen extends Component {
@@ -375,7 +375,7 @@ class ResultScreen extends Component {
                         </View>
 
                     </ScrollView>
-                    <View style={{ width: Dimensions.get('window').width }}>
+                    <View style={{ width: Dimensions.get('window').width,backgroundColor: '#171717' }}>
                         <AdMobBanner
                             bannerSize="fullBanner"
                             adUnitID="ca-app-pub-6467321076216101/8261641007" // Test ID, Replace with your-admob-unit-id

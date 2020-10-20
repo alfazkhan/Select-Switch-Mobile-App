@@ -237,14 +237,14 @@ class CreateEditListScreen extends Component {
     }
 
     infoAlertHandler = (type) => {
-        let text,desc
-        if(type === "importance" ){
+        let text, desc
+        if (type === "importance") {
             text = "About Factor"
-            desc="How important is this property, more the importance more the priority"
-        }else if(type === "negative"){
+            desc = "How important is this property, more the importance more the priority"
+        } else if (type === "negative") {
             console.log(type)
             text = "About Factor"
-            desc="Decides if this a negative property, if set to negative more the importance less the priority"
+            desc = "Decides if this a negative property, if set to negative more the importance less the priority"
         }
         Alert.alert(
             text,
@@ -260,7 +260,7 @@ class CreateEditListScreen extends Component {
     }
 
     validationAlert = (heading, text) => {
-        console.log(heading,text)
+        console.log(heading, text)
         Alert.alert(
             heading,
             text,
@@ -335,7 +335,7 @@ class CreateEditListScreen extends Component {
                     listProperties[i].id = propertyRes.insertId
                 }
             }
-            // console.log(listItems,listProperties)
+            console.log(listItems,listProperties)
             for (var i = 0; i < listItems.length; i++) {
                 for (var j = 0; j < listProperties.length; j++) {
                     const res = await createListItemProperty(listItems[i].id, listProperties[j].id, listID, 100)
@@ -463,11 +463,15 @@ class CreateEditListScreen extends Component {
                                                 onChangeText={this.propertyInfoChangeHandler.bind(this, index)}
                                                 />
                                             </View> */}
-                                            <View style={styles.importanceInput}>
+                                            <View style={{ flexDirection: 'row', flex: 1 }}>
+                                                <AntDesign name="infocirlce"
+                                                    size={16} color="white"
+                                                    onPress={() => this.infoAlertHandler("importance")}
+                                                    style={{ textAlignVertical: 'center', marginLeft: Dimensions.get('screen').width < 350 ? 10 : 20, }}
+                                                />
                                                 <Text style={styles.sliderText}>Importance</Text>
-                                                <AntDesign name="infocirlce" size={16} color="white" onPress={() => this.infoAlertHandler("importance")} style={{ textAlignVertical: 'center' }} />
                                                 <Slider
-                                                    style={{ height: 55, flex: 4, width: 100 }}
+                                                    style={{ height: 55, flex: 3, width: 1000 }}
                                                     minimumValue={0}
                                                     maximumValue={100}
                                                     minimumTrackTintColor={Colors.orange}
@@ -478,17 +482,23 @@ class CreateEditListScreen extends Component {
                                                     onSlidingStart={() => this.setState({ sliderValueVisible: true })}
                                                     onSlidingComplete={() => this.setState({ sliderValueVisible: false })}
                                                 />
-                                                <Text style={styles.sliderValue}>{this.state.sliderValueVisible ? this.state.listProperties[index].importance : null}</Text>
+                                                <Text style={styles.sliderValue}>{this.state.listProperties[index].importance}</Text>
                                             </View>
-                                            <View style={{ flex: 1, flexDirection: 'row', paddingBottom: 20 }}>
-                                                <Text style={styles.sliderText}>Negative Value</Text>
-                                                <AntDesign name="infocirlce" size={16} color="white" onPress={() => this.infoAlertHandler("negative")} style={{ textAlignVertical: 'center', flex: 2.8 }} />
-                                                <Checkbox
-                                                    value={item.negative === 0 ? false : true}
-                                                    onValueChange={this.negativeValueToggle.bind(this, index)}
-                                                    style={styles.checkbox}
-                                                    tintColors={{ true: '#FF7043' }}
+                                            <View style={{ flexDirection: 'row', flex: 1,paddingBottom:10 }}>
+                                                <AntDesign name="infocirlce"
+                                                    size={16} color="white"
+                                                    onPress={() => this.infoAlertHandler("importance")}
+                                                    style={{ textAlignVertical: 'center', marginLeft: Dimensions.get('screen').width < 350 ? 10 : 20, }}
                                                 />
+                                                <Text style={styles.sliderText}>Negative Value</Text>
+                                                <View style={styles.checkbox}>
+                                                    <Checkbox
+                                                        value={item.negative === 0 ? false : true}
+                                                        onValueChange={this.negativeValueToggle.bind(this, index)}
+                                                        
+                                                        tintColors={{ true: '#FF7043' }}
+                                                    />
+                                                </View>
                                             </View>
                                         </View>
                                     )
@@ -525,7 +535,7 @@ class CreateEditListScreen extends Component {
                                 )
                             })}
                         </View>
-                        <View style={{marginTop:20}}>
+                        <View style={{ marginTop: 20 }}>
                             <CustomButton text="Save"
                                 Press={() => {
                                     this.submitHandler()
@@ -585,7 +595,7 @@ const styles = StyleSheet.create({
     },
     listNameInput: {
         color: 'white',
-        fontSize: 20,
+        fontSize: Dimensions.get('screen').width < 350 ?14:20,
         marginTop: Dimensions.get('screen').width < 350 ? 10 : 40,
         marginHorizontal: Dimensions.get('screen').width < 350 ? 10 : 20,
         borderBottomColor: 'grey',
@@ -594,7 +604,7 @@ const styles = StyleSheet.create({
     },
     textInput: {
         color: 'white',
-        fontSize: 20,
+        fontSize: Dimensions.get('screen').width < 350 ?14:20,
         marginTop: 10,
         marginHorizontal: Dimensions.get('screen').width < 350 ? 10 : 20,
         borderBottomColor: 'grey',
@@ -622,7 +632,7 @@ const styles = StyleSheet.create({
     },
     currentListText: {
         color: '#fff',
-        fontSize: 20,
+        fontSize: Dimensions.get('screen').width < 350 ?14:20,
         textAlign: 'left',
         marginLeft: 10
     },
@@ -646,18 +656,19 @@ const styles = StyleSheet.create({
     },
     sliderText: {
         color: '#fff',
-        fontSize: 20,
+        fontSize: Dimensions.get('screen').width < 350 ?14:20,
         textAlignVertical: 'center',
-        marginLeft: Dimensions.get('screen').width < 350 ? 10 : 20,
-        flex: 2.3,
+        marginLeft: Dimensions.get('screen').width < 350 ? 5 : 10,
+        flex: 1.5,
+
         // marginRight: Dimensions.get('screen').width < 350 ? 10 : 20,
     },
     sliderValue: {
-        // fontSize: 20,
         color: '#fff',
         textAlignVertical: 'center',
-        flex: 1,
-        marginRight: Dimensions.get('screen').width < 350 ? 10 : 25
+        marginRight: Dimensions.get('screen').width < 350 ? 10 : 20,
+        alignItems: 'flex-end',
+        // padding:1
     },
     importanceInput: {
         flexDirection: 'row',
@@ -665,7 +676,9 @@ const styles = StyleSheet.create({
         flex: 1
     },
     checkbox: {
-        marginRight: Dimensions.get('screen').width < 350 ? 5 : 10
+        marginRight: Dimensions.get('screen').width < 350 ? 5 : 10,
+        flex: 1.5,
+        alignItems:'flex-end',
 
     },
     backIcon: {
