@@ -3,11 +3,11 @@ import * as SQLite from 'expo-sqlite';
 
 const db = SQLite.openDatabase('SelectSwitch.db')
 
-export const createProperty = (listID, propertyName,importance,info,negative) => {
+export const createProperty = (listID, propertyName,importance,negative) => {
     const promise = new Promise((resolve, reject) => {
         db.transaction((txn) => {
-            txn.executeSql(`INSERT INTO properties (listID, propertyName,importance,info,negative) VALUES(?,?,?,?,?)`,
-                [listID, propertyName,importance,info,negative],
+            txn.executeSql(`INSERT INTO properties (listID, propertyName,importance,negative) VALUES(?,?,?,?)`,
+                [listID, propertyName,importance,negative],
                 (_, result) => {
                     resolve(result)
                 },
@@ -37,11 +37,11 @@ export const fetchProperties = (listID) => {
     return promise
 }
 
-export const updateProperty = (propertyName,importance,info,negative,id) => {
+export const updateProperty = (propertyName,importance,negative,id) => {
     return new Promise((resolve, reject) => {
         db.transaction((txn) => {
-            txn.executeSql(`UPDATE properties SET propertyName=?,importance=?,info=?,negative=? where id=?`,
-                [propertyName,importance,info,negative,id],
+            txn.executeSql(`UPDATE properties SET propertyName=?,importance=?,negative=? where id=?`,
+                [propertyName,importance,negative,id],
                 (_, result) => {
                     resolve(result)
                 },

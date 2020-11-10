@@ -70,3 +70,38 @@ export const deleteList = (id) => {
     })
     return promise
 }
+
+export const fetchAllList = () => {
+    const promise = new Promise((resolve, reject) => {
+        db.transaction((txn) => {
+            txn.executeSql(`SELECT * from lists`,
+                [],
+                (_, result) => {
+                    resolve(result)
+                },
+                (_, err) => {
+                    reject(err)
+                }
+            )
+        })
+    })
+    return promise
+}
+
+export const deleteAllList = () => {
+    const promise = new Promise((resolve, reject) => {
+        db.transaction((txn) => {
+            txn.executeSql(`DELETE from lists`,
+                [],
+                (_, result) => {
+                    resolve(result)
+                    console.log("Deleted All Lists")
+                },
+                (_, err) => {
+                    reject(err)
+                }
+            )
+        })
+    })
+    return promise
+}
