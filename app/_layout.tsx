@@ -1,25 +1,63 @@
-import '@/global.css';
-
-import { NAV_THEME } from '@/lib/theme';
-import { ThemeProvider } from 'expo-router/react-navigation';
-import { PortalHost } from '@rn-primitives/portal';
+import React, { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useColorScheme } from 'nativewind';
+import { StatusBar, StyleSheet } from 'react-native';
+import { legacy_createStore as createStore } from 'redux';
+import { Provider } from 'react-redux';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+import { countReducer } from '../Redux/Reducers/MainReducer';
+import { init } from '../Helper/db';
+
+const store = createStore(countReducer);
+
+const defaultNavOptions = {
+    headerTitle: '',
+    headerTintColor: '#fff',
+    headerStyle: {
+        backgroundColor: '#000',
+    },
+    headerTitleStyle: {
+        color: '#fff'
+    },
+};
 
 export default function RootLayout() {
-  const { colorScheme } = useColorScheme();
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    async function prepareDatabase() {
+      try {
+        await init();
+      } catch (e) {
+        console.warn("Database initialization failed:", e);
+      } finally {
+        setIsReady(true);
+      }
+    }
+    prepareDatabase();
+  }, []);
+
+  if (!isReady) {
+    return null; 
+  }
 
   return (
-    <ThemeProvider value={NAV_THEME[colorScheme ?? 'light']}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <Stack />
-      <PortalHost />
-    </ThemeProvider>
+    <Provider store={store}>
+      <GestureHandlerRootView style={styles.container}>
+        <StatusBar backgroundColor="black" barStyle="light-content" />
+        <Stack screenOptions={{ ...defaultNavOptions }}>
+          <Stack.Screen name="index" options={{ headerShown: true }} />
+          <Stack.Screen name="SelectList" options={{ headerShown: true }} />
+          <Stack.Screen name="CreateEdit" options={{ headerShown: true }} />
+          <Stack.Screen name="Result" options={{ headerShown: true }} />
+        </Stack>
+      </GestureHandlerRootView>
+    </Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1
+  }
+});

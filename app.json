@@ -1,11 +1,10 @@
 {
   "expo": {
     "name": "Select Switch",
-    "slug": "Select Switch",
+    "slug": "Select-Switch",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "Select Switch",
     "userInterfaceStyle": "automatic",
     "assetBundlePatterns": [
       "**/*"
@@ -17,7 +16,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.theonlyalfaz.selectswitch"
     },
     "web": {
       "bundler": "metro",
@@ -34,10 +34,18 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c9bca442-bfc1-4086-9fa1-c88230a7446f"
+      }
+    },
+    "owner": "i_am_alfaaz"
   }
 }
