@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
-import * as SQLite from 'expo-sqlite';
+import { db } from '../Helper/dbInstance';
 
 import { globalStyles, Colors } from '../Styles/GlobalStyles';
 import CustomButton from '@/components/CustomButton';
@@ -27,41 +27,37 @@ export default function ResultScreen() {
             headerTitle: params.listName || 'Selection Result',
         });
 
-        async function evaluateList() {
+        function evaluateList() {
             if (!params.id) return;
             try {
                 const listIdNum = parseInt(params.id, 10);
                 
-                // Fetch Items linked to this list
-                const itemsRes: any = await fetchListItems(listIdNum);
+                const itemsRes: any = fetchListItems(listIdNum);
                 const items = itemsRes.rows._array || [];
 
                 if (params.listType === 'random') {
-                    // Random selection algorithm
                     if (items.length > 0) {
                         const randomIndex = Math.floor(Math.random() * items.length);
                         setCalculatedResults([{ itemName: items[randomIndex].itemName, score: 100 }]);
                     }
                 } else {
-                    // Logical matrix evaluation layout
-                    const propsRes: any = await fetchProperties(listIdNum);
+                    const propsRes: any = fetchProperties(listIdNum);
                     const properties = propsRes.rows._array || [];
-
-                    const db = await SQLite.openDatabaseAsync('SelectSwitch.db');
                     const matrixResults = [];
 
                     for (let item of items) {
                         let totalScore = 0;
 
                         for (let prop of properties) {
-                            // Corrected table name typo & mapped item.id and prop.id variables
-                            const relations: any[] = await db.getAllAsync(
+                            // Executed synchronously through JSI mapping pointers cleanly
+                            const queryResult = db.execute(
                                 'SELECT * FROM listItemProperty WHERE listItemID = ? AND propertyID = ?',
                                 [item.id, prop.id]
                             );
+                            const relations = queryResult.rows?._array || [];
 
                             let scalarModifier = 100; 
-                            if (relations && relations.length > 0) {
+                            if (relations.length > 0) {
                                 scalarModifier = relations[0].value ?? 100;
                             }
 
@@ -79,13 +75,12 @@ export default function ResultScreen() {
                         });
                     }
 
-                    // Sort descending (highest matching priority elements first)
                     matrixResults.sort((a, b) => b.score - a.score);
                     setCalculatedResults(matrixResults);
                 }
             } catch (err) {
                 console.error("Analysis engine calculation failure:", err);
-            } finally {
+            } {
                 setLoading(false);
             }
         }

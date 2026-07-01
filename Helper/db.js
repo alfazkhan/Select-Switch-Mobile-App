@@ -1,90 +1,83 @@
-import { getDbConnection } from './dbInstance';
+import { db } from './dbInstance';
 import { fetchAllList, createList } from './Lists';
 import { createListItem } from './ListItems';
 import { createListItemProperty } from './listItemProperty';
 import { createProperty } from './Properties';
 
-let initPromise = null;
+export const init = () => {
+    try {
+        db.execute('PRAGMA foreign_keys = ON;');
+        db.execute('PRAGMA journal_mode = WAL;');
 
-export const init = async () => {
-    if (!initPromise) {
-        initPromise = (async () => {
-            try {
-                const db = await getDbConnection();
-                
-                // Enforce single exclusive transaction block for database generation
-                await db.withTransactionAsync(async () => {
-                    await db.execAsync(`
-                        PRAGMA foreign_keys = ON;
+        db.execute(`
+            CREATE TABLE IF NOT EXISTS lists (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+                listName TEXT NOT NULL, 
+                listType TEXT NOT NULL, 
+                repeatResults INTEGER NOT NULL, 
+                storeResults INTEGER NOT NULL
+            );
+        `);
 
-                        CREATE TABLE IF NOT EXISTS lists (
-                            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
-                            listName TEXT NOT NULL, 
-                            listType TEXT NOT NULL, 
-                            repeatResults INTEGER NOT NULL, 
-                            storeResults INTEGER NOT NULL
-                        );
+        db.execute(`
+            CREATE TABLE IF NOT EXISTS listItems (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+                listID INTEGER NOT NULL, 
+                itemName TEXT NOT NULL,
+                FOREIGN KEY (listID) REFERENCES lists (id) ON DELETE CASCADE
+            );
+        `);
 
-                        CREATE TABLE IF NOT EXISTS listItems (
-                            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
-                            listID INTEGER NOT NULL, 
-                            itemName TEXT NOT NULL,
-                            FOREIGN KEY (listID) REFERENCES lists (id) ON DELETE CASCADE
-                        );
+        db.execute(`
+            CREATE TABLE IF NOT EXISTS properties (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                listID INTEGER NOT NULL, 
+                propertyName TEXT NOT NULL, 
+                importance INTEGER NOT NULL, 
+                negative INTEGER NOT NULL,
+                FOREIGN KEY (listID) REFERENCES lists (id) ON DELETE CASCADE
+            );
+        `);
 
-                        CREATE TABLE IF NOT EXISTS properties (
-                            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-                            listID INTEGER NOT NULL, 
-                            propertyName TEXT NOT NULL, 
-                            importance INTEGER NOT NULL, 
-                            negative INTEGER NOT NULL,
-                            FOREIGN KEY (listID) REFERENCES lists (id) ON DELETE CASCADE
-                        );
+        db.execute(`
+            CREATE TABLE IF NOT EXISTS listItemProperty (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+                listItemID INTEGER NOT NULL,
+                listID INTEGER NOT NULL, 
+                propertyID INTEGER NOT NULL, 
+                value INTEGER NOT NULL,
+                FOREIGN KEY (listItemID) REFERENCES listItems (id) ON DELETE CASCADE,
+                FOREIGN KEY (propertyID) REFERENCES properties (id) ON DELETE CASCADE,
+                FOREIGN KEY (listID) REFERENCES lists (id) ON DELETE CASCADE
+            );
+        `);
 
-                        CREATE TABLE IF NOT EXISTS listItemProperty (
-                            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
-                            listItemID INTEGER NOT NULL,
-                            listID INTEGER NOT NULL, 
-                            propertyID INTEGER NOT NULL, 
-                            value INTEGER NOT NULL,
-                            FOREIGN KEY (listItemID) REFERENCES listItems (id) ON DELETE CASCADE,
-                            FOREIGN KEY (propertyID) REFERENCES properties (id) ON DELETE CASCADE,
-                            FOREIGN KEY (listID) REFERENCES lists (id) ON DELETE CASCADE
-                        );
+        db.execute(`
+            CREATE TABLE IF NOT EXISTS results (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+                listID INTEGER NOT NULL, 
+                result TEXT NOT NULL,
+                FOREIGN KEY (listID) REFERENCES lists (id) ON DELETE CASCADE
+            );
+        `);
 
-                        CREATE TABLE IF NOT EXISTS results (
-                            id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
-                            listID INTEGER NOT NULL, 
-                            result TEXT NOT NULL,
-                            FOREIGN KEY (listID) REFERENCES lists (id) ON DELETE CASCADE
-                        );
-                    `);
-                });
-
-                // Pre-seed initial rows outside structure locks
-                await initialiseData();
-                return true;
-            } catch (error) {
-                initPromise = null;
-                console.error('Database setup sequence crashed:', error);
-                throw error;
-            }
-        })();
+        initialiseData();
+        return true;
+    } catch (error) {
+        console.error('Database layout initialization failed:', error);
+        throw error;
     }
-    return initPromise;
 };
 
-export const initialiseData = async () => {
+export const initialiseData = () => {
     try {
-        const res = await fetchAllList();
+        const res = fetchAllList();
         if (res.rows._array.length === 0) {
-            const db = await getDbConnection();
-            
-            await db.withTransactionAsync(async () => {
-                let randomRes = await createList("Breakfast", "random", 1, 1);
+            db.transaction(() => {
+                let randomRes = createList("Breakfast", "random", 1, 1);
                 let randomID = randomRes.insertId;
 
-                let logicalRes = await createList("Lunch", "logical", 1, 1);
+                let logicalRes = createList("Lunch", "logical", 1, 1);
                 let logicalID = logicalRes.insertId;
 
                 const listItems = ["Poha", "Burger", "Rice"];
@@ -93,7 +86,7 @@ export const initialiseData = async () => {
 
                 for (let i = 0; i < IDs.length; i++) {
                     for (let j = 0; j < listItems.length; j++) {
-                        let listItemRes = await createListItem(IDs[i], listItems[j]);
+                        let listItemRes = createListItem(IDs[i], listItems[j]);
                         if (IDs[i] === logicalID) {
                             listItemIDs.push(listItemRes.insertId);
                         }
@@ -103,7 +96,7 @@ export const initialiseData = async () => {
                 const property = ["Taste", "Calories"];
                 const propertyIds = [];
                 for (let i = 0; i < 2; i++) {
-                    const propertyRes = await createProperty(
+                    const propertyRes = createProperty(
                         logicalID, 
                         property[i], 
                         Math.floor(Math.random() * 100), 
@@ -114,13 +107,13 @@ export const initialiseData = async () => {
 
                 for (let i = 0; i < listItemIDs.length; i++) {
                     for (let j = 0; j < propertyIds.length; j++) {
-                        await createListItemProperty(listItemIDs[i], propertyIds[j], logicalID, 100);
+                        createListItemProperty(listItemIDs[i], propertyIds[j], logicalID, 100);
                     }
                 }
             });
         }
     } catch (error) {
-        console.error('Failed to pre-seed application configuration context:', error);
+        console.error('Failed to pre-seed initial application data:', error);
         throw error;
     }
 };

@@ -35,7 +35,7 @@
         }
       ],
       "expo-status-bar",
-      "expo-sqlite"
+      "@op-engineering/op-sqlite"
     ],
     "experiments": {
       "typedRoutes": true

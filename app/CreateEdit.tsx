@@ -5,7 +5,6 @@ import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { AntDesign, FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import Checkbox from '@react-native-community/checkbox';
-import * as SQLite from 'expo-sqlite';
 
 import { globalStyles, Colors } from '../Styles/GlobalStyles';
 import CustomButton from '@/components/CustomButton';
@@ -35,22 +34,22 @@ export default function CreateEditListScreen() {
             headerTitle: params.mode === 'create' ? 'Create List' : 'Edit List'
         });
 
-        async function loadData() {
+        function loadData() {
             if (params.mode === 'edit' && params.listID) {
                 try {
-                    const db = await SQLite.openDatabaseAsync('SelectSwitch.db');
+                    const listIdNum = parseInt(params.listID, 10);
                     
-                    const listRes: any = await fetchList(parseInt(params.listID));
+                    const listRes: any = fetchList(listIdNum);
                     const list = listRes.rows._array[0];
                     if (list) {
                         setListName(list.listName);
                     }
 
-                    const itemsRes: any = await fetchListItems(parseInt(params.listID));
+                    const itemsRes: any = fetchListItems(listIdNum);
                     setListItems(itemsRes.rows._array || []);
 
                     if (params.listType === 'logical') {
-                        const propsRes: any = await fetchProperties(parseInt(params.listID));
+                        const propsRes: any = fetchProperties(listIdNum);
                         setListProperties(propsRes.rows._array || []);
                     }
                 } catch (err) {
@@ -60,7 +59,7 @@ export default function CreateEditListScreen() {
             setLoaded(true);
         }
         loadData();
-    }, [params]);
+    }, [params, navigation]);
 
     const sliderValueHandler = (val: number, index: number) => {
         const updated = [...listProperties];
@@ -123,7 +122,7 @@ export default function CreateEditListScreen() {
         ]);
     };
 
-    const submitHandler = async () => {
+    const submitHandler = () => {
         if (!listName.trim()) {
             Alert.alert('Error!', "List Name Can't be blank");
             return;
@@ -144,23 +143,22 @@ export default function CreateEditListScreen() {
         }
 
         if (params.mode === 'create') {
-            const listRes = await createList(listName, params.listType, true, true);
+            const listRes = createList(listName, params.listType, true, true);
             const nativeListId = listRes.insertId;
 
             const finalizedItems = [];
             for (let i = 0; i < listItems.length; i++) {
-                const itemRes = await createListItem(nativeListId, listItems[i].itemName);
+                const itemRes = createListItem(nativeListId, listItems[i].itemName);
                 finalizedItems.push({ id: itemRes.insertId });
             }
 
             const finalizedProps = [];
             if (params.listType === 'logical') {
                 for (let i = 0; i < listProperties.length; i++) {
-                    const propertyRes = await createProperty(
+                    const propertyRes = createProperty(
                         nativeListId,
                         listProperties[i].propertyName,
                         listProperties[i].importance,
-                        listProperties[i].info,
                         listProperties[i].negative
                     );
                     finalizedProps.push({ id: propertyRes.insertId });
@@ -168,25 +166,25 @@ export default function CreateEditListScreen() {
 
                 for (let i = 0; i < finalizedItems.length; i++) {
                     for (let j = 0; j < finalizedProps.length; j++) {
-                        await createListItemProperty(finalizedItems[i].id, finalizedProps[j].id, nativeListId, 100);
+                        createListItemProperty(finalizedItems[i].id, finalizedProps[j].id, nativeListId, 100);
                     }
                 }
             }
             router.dismiss(2);
             router.push({ pathname: '/SelectList', params: { listType: params.listType } });
         } else if (params.listID) {
-            const currentListId = parseInt(params.listID);
-            await updateList(listName, currentListId);
+            const currentListId = parseInt(params.listID, 10);
+            updateList(listName, currentListId);
 
             for (let id of deletedListItems) {
-                await deleteListItem(id);
-                await deleteAllListItemPropertiesbyItemID(id);
+                deleteListItem(id);
+                deleteAllListItemPropertiesbyItemID(id);
             }
 
             const activeItemIds = [];
             for (let item of listItems) {
                 if (typeof item.id !== 'number') {
-                    const itemRes = await createListItem(currentListId, item.itemName);
+                    const itemRes = createListItem(currentListId, item.itemName);
                     activeItemIds.push(itemRes.insertId);
                 } else {
                     activeItemIds.push(item.id);
@@ -195,25 +193,25 @@ export default function CreateEditListScreen() {
 
             if (params.listType === 'logical') {
                 for (let id of deletedListProperties) {
-                    await deleteProperty(id);
-                    await deleteAllListItemPropertiesbyPropertyID(id);
+                    deleteProperty(id);
+                    deleteAllListItemPropertiesbyPropertyID(id);
                 }
 
                 const activePropIds = [];
                 for (let prop of listProperties) {
                     if (typeof prop.id === 'number') {
-                        await updateProperty(prop.propertyName, prop.importance, prop.info, prop.negative, prop.id);
+                        updateProperty(prop.propertyName, prop.importance, prop.negative, prop.id);
                         activePropIds.push(prop.id);
                     } else {
-                        const propertyRes = await createProperty(currentListId, prop.propertyName, prop.importance, prop.info, prop.negative);
+                        const propertyRes = createProperty(currentListId, prop.propertyName, prop.importance, prop.negative);
                         activePropIds.push(propertyRes.insertId);
                     }
                 }
 
-                await deleteAllListItemProperties(currentListId);
+                deleteAllListItemProperties(currentListId);
                 for (let itemId of activeItemIds) {
                     for (let propId of activePropIds) {
-                        await createListItemProperty(itemId, propId, currentListId, 100);
+                        createListItemProperty(itemId, propId, currentListId, 100);
                     }
                 }
             }
@@ -289,7 +287,7 @@ export default function CreateEditListScreen() {
                             </View>
                         ))}
                         <TouchableOpacity onPress={addPropertyHandler}>
-                            <AntDesign name="pluscircle" size={30} color="#FF7043" style={styles.centerIcon} />
+                            <AntDesign name="plus-circle" size={30} color="#FF7043" style={styles.centerIcon} />
                         </TouchableOpacity>
                     </View>
                 )}
@@ -303,7 +301,7 @@ export default function CreateEditListScreen() {
                         onChangeText={setListItemName} 
                     />
                     <TouchableOpacity onPress={listItemSubmitHandler}>
-                        <AntDesign name="pluscircle" size={30} color="#FF7043" style={styles.plusIcon} />
+                        <AntDesign name="plus-circle" size={30} color="#FF7043" style={styles.plusIcon} />
                     </TouchableOpacity>
                 </View>
 

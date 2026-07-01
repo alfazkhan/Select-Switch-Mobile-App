@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Text, View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
-import * as SQLite from 'expo-sqlite';
 import CustomButton from '@/components/CustomButton';
 import { globalStyles } from '../Styles/GlobalStyles';
+import { fetchAllList } from '../Helper/Lists';
 
 interface ListEntity {
     id: number;
@@ -22,16 +22,13 @@ export default function SelectListScreen() {
         const title = listType === 'random' ? 'Random Selection' : listType === 'logical' ? 'Logical Selection' : 'Selection';
         navigation.setOptions({ headerTitle: title });
 
-        async function loadLists() {
-            try {
-                const db = await SQLite.openDatabaseAsync('SelectSwitch.db');
-                const result = await db.getAllAsync<ListEntity>('SELECT * FROM lists');
-                setLists(result);
-            } catch (err) {
-                console.error(err);
-            }
+        try {
+            // op-sqlite runs synchronously; fetch data directly without async database promises
+            const result = fetchAllList();
+            setLists(result.rows._array);
+        } catch (err) {
+            console.error("Failed to fetch collections array:", err);
         }
-        loadLists();
     }, [listType, navigation]);
 
     return (

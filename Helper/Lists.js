@@ -1,86 +1,50 @@
-import { getDbConnection } from './dbInstance';
+import { db } from './dbInstance';
 
-export const createList = async (listName, listType, repeatResults, storeResults) => {
-    try {
-        const db = await getDbConnection();
-        const result = await db.runAsync(
-            'INSERT INTO lists (listName, listType, repeatResults, storeResults) VALUES (?, ?, ?, ?);',
-            [listName, listType, repeatResults ? 1 : 0, storeResults ? 1 : 0]
-        );
-        return {
-            insertId: result.lastInsertRowId,
-            rowsAffected: result.changes
-        };
-    } catch (error) {
-        console.error('Failed to create list entry:', error);
-        throw error;
-    }
+export const createList = (listName, listType, repeatResults, storeResults) => {
+    const result = db.execute(
+        'INSERT INTO lists (listName, listType, repeatResults, storeResults) VALUES (?, ?, ?, ?);',
+        [listName, listType, repeatResults ? 1 : 0, storeResults ? 1 : 0]
+    );
+    return {
+        insertId: result.insertId,
+        rowsAffected: result.rowsAffected
+    };
 };
 
-export const updateList = async (listName, id) => {
-    try {
-        const db = await getDbConnection();
-        const result = await db.runAsync(
-            'UPDATE lists SET listName = ? WHERE id = ?;',
-            [listName, id]
-        );
-        return { rowsAffected: result.changes };
-    } catch (error) {
-        console.error('Failed to update target list name:', error);
-        throw error;
-    }
+export const updateList = (listName, id) => {
+    const result = db.execute(
+        'UPDATE lists SET listName = ? WHERE id = ?;',
+        [listName, id]
+    );
+    return { rowsAffected: result.rowsAffected };
 };
 
-export const fetchList = async (id) => {
-    try {
-        const db = await getDbConnection();
-        const records = await db.getAllAsync('SELECT * FROM lists WHERE id = ?;', [id]);
-        return {
-            rows: {
-                _array: records,
-                length: records.length
-            }
-        };
-    } catch (error) {
-        console.error('Failed to fetch target list details:', error);
-        throw error;
-    }
+export const fetchList = (id) => {
+    const result = db.execute('SELECT * FROM lists WHERE id = ?;', [id]);
+    return {
+        rows: {
+            _array: result.rows?._array ?? [],
+            length: result.rows?.length ?? 0
+        }
+    };
 };
 
-export const deleteList = async (id) => {
-    try {
-        const db = await getDbConnection();
-        const result = await db.runAsync('DELETE FROM lists WHERE id = ?;', [id]);
-        return { rowsAffected: result.changes };
-    } catch (error) {
-        console.error('Failed to delete target list configuration:', error);
-        throw error;
-    }
+export const deleteList = (id) => {
+    const result = db.execute('DELETE FROM lists WHERE id = ?;', [id]);
+    return { rowsAffected: result.rowsAffected };
 };
 
-export const fetchAllList = async () => {
-    try {
-        const db = await getDbConnection();
-        const records = await db.getAllAsync('SELECT * FROM lists;');
-        return {
-            rows: {
-                _array: records,
-                length: records.length
-            }
-        };
-    } catch (error) {
-        console.error('Failed to fetch collection arrays from lists:', error);
-        throw error;
-    }
+export const fetchAllList = () => {
+    const result = db.execute('SELECT * FROM lists;');
+    return {
+        rows: {
+            _array: result.rows?._array ?? [],
+            length: result.rows?.length ?? 0
+        }
+    };
 };
 
-export const deleteAllList = async () => {
-    try {
-        const db = await getDbConnection();
-        const result = await db.runAsync('DELETE FROM lists;');
-        return { rowsAffected: result.changes };
-    } catch (error) {
-        console.error('Failed to purge list storage tables:', error);
-        throw error;
-    }
+export const deleteAllList = () => {
+    const result = db.execute('DELETE FROM lists;');
+    return { rowsAffected: result.rowsAffected };
 };
