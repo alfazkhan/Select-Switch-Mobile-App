@@ -34,8 +34,7 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-status-bar",
-      "@op-engineering/op-sqlite"
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true
