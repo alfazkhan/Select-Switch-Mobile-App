@@ -1,3 +1,3 @@
 import { open } from '@op-engineering/op-sqlite';
 
-export const db = open({ name: 'SelectSwitch.db' });
+export const db = open({ name: 'SelectSwitch.db' });    
